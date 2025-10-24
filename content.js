@@ -274,12 +274,9 @@ function ensureOverlay() {
       <div id="cinechat-preview" style="display:none;"></div>
 
       <div id="cinechat-quick">
-        <button class="cinechat-chip" id="cinechat-q-recap-120">Recap last 2 min</button>
-        <button class="cinechat-chip" id="cinechat-q-eli12">Explain simply</button>
-        <button class="cinechat-chip" id="cinechat-q-why">Why is this happening?</button>
-        <button class="cinechat-chip" id="cinechat-q-terms">Define key terms</button>
+        <button class="cinechat-chip" id="cinechat-q-recap">📖 Recap</button>
         <button class="cinechat-chip" id="cinechat-q-trivia">🎲 Trivia</button>
-        <button class="cinechat-chip" id="cinechat-q-comments" style="display:none;">📝 Comments</button>
+        <button class="cinechat-chip" id="cinechat-q-comments" style="display:none;">💬 Comments</button>
       </div>
 
       <div id="cinechat-answer"></div>
@@ -386,10 +383,7 @@ function ensureOverlay() {
   showBuf.addEventListener("change", renderPreview);
 
   // prefab chips
-  const btnRecap = root.querySelector("#cinechat-q-recap-120");
-  const btnELI12 = root.querySelector("#cinechat-q-eli12");
-  const btnWhy = root.querySelector("#cinechat-q-why");
-  const btnTerms = root.querySelector("#cinechat-q-terms");
+  const btnRecap = root.querySelector("#cinechat-q-recap");
   const btnTrivia = root.querySelector("#cinechat-q-trivia");
   const btnComments = root.querySelector("#cinechat-q-comments");
 
@@ -401,34 +395,18 @@ function ensureOverlay() {
 
   btnRecap.addEventListener("click", () => {
     askLLM(
-      "Give a concise recap (3–5 sentences) of the last ~2 minutes, using only the provided context.",
+      "Give a concise recap (3–5 sentences) of what's happened in the last few minutes.",
       ans
     );
   });
-  btnELI12.addEventListener("click", () => {
-    askLLM(
-      "Explain the last minute in very simple terms, as if to a 12-year-old. Keep it to 3–4 sentences.",
-      ans
-    );
-  });
-  btnWhy.addEventListener("click", () => {
-    askLLM(
-      "Why are the characters doing what they're doing right now? Use only the context so far, no spoilers.",
-      ans
-    );
-  });
-  btnTerms.addEventListener("click", () => {
-    askLLM(
-      "List and briefly define any technical terms or names that appeared in the last 2–3 minutes.",
-      ans
-    );
-  });
+
   btnTrivia.addEventListener("click", () => {
     askLLM(
       "Give me 3 interesting trivia facts about this movie/video/song. Keep it spoiler-free and fun!",
       ans
     );
   });
+
   btnComments.addEventListener("click", () => {
     const comments = scrapeYouTubeComments();
     if (!comments || comments.length === 0) {
