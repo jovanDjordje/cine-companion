@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "CineChat MVP",
+  "version": "0.1.0",
+  "description": "Ask AI about what's happening in the current scene.",
+  "action": {
+    "default_title": "CineChat MVP"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.netflix.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*", "*://*.netflix.com/*"],
+      "js": ["content.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,219 @@
+/* ============================
+   CineChat MVP - overlay.css
+   ============================ */
+
+/* Root & Theme */
+#cinechat-root {
+  all: initial;
+  position: fixed;
+  z-index: 2147483647;
+  bottom: 24px;
+  right: 24px;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* dark by default */
+#cinechat-root {
+  --panel-bg: rgba(15,17,21,0.95);
+  --panel-fg: #e8eaed;
+  --muted: #a6adb7;
+  --border: #2a2f36;
+  --accent: #3a86ff;
+  --accent-contrast: #fff;
+  --chip: #1f2937;
+  --chip-hover: #374151;
+  --shadow: 0 16px 48px rgba(0,0,0,.55);
+  --kbd-bg: #222830;
+  --kbd-fg: #cbd5e1;
+}
+
+/* light mode (auto toggle from JS if needed) */
+#cinechat-root.cinechat-light {
+  --panel-bg: rgba(255,255,255,0.96);
+  --panel-fg: #1f2937;
+  --muted: #4b5563;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-contrast: #fff;
+  --chip: #eef2f7;
+  --chip-hover: #dde3ea;
+  --shadow: 0 14px 40px rgba(0,0,0,.14);
+  --kbd-bg: #eef2f7;
+  --kbd-fg: #334155;
+}
+
+/* FAB toggle button */
+#cinechat-toggle {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px; height: 46px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  font-size: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* Panel */
+#cinechat-panel {
+  position: absolute;
+  bottom: 58px; right: 0;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 12px;
+  display: none;
+  backdrop-filter: saturate(120%) blur(6px);
+  box-sizing: border-box;
+  overflow: auto;
+}
+#cinechat-panel.open { display: block; }
+
+/* Header */
+#cinechat-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px; color: var(--muted);
+  cursor: move; user-select: none;
+}
+#cinechat-small kbd {
+  background: var(--kbd-bg);
+  color: var(--kbd-fg);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+/* Controls */
+#cinechat-row {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 6px;
+}
+#cinechat-row label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+#cinechat-q {
+  width: 100%;
+  height: 74px;
+  resize: vertical;
+  background: transparent;
+  color: var(--panel-fg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  box-sizing: border-box;
+  outline: none;
+  max-height: 160px;
+  overflow: auto;
+}
+#cinechat-q:focus { border-color: var(--accent); }
+
+/* Ask button */
+#cinechat-ask {
+  all: unset;
+  cursor: pointer;
+  display: inline-block;
+  padding: 8px 12px;
+  margin-top: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Preview box */
+#cinechat-preview {
+  margin-top: 8px;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #cfe9cf;
+  background: rgba(20,40,20,.45);
+  border: 1px solid #2a3f2a;
+  border-radius: 10px;
+  padding: 8px;
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Quick question chips */
+#cinechat-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.cinechat-chip {
+  all: unset;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--panel-fg);
+  font-size: 12px;
+  font-weight: 700;
+}
+.cinechat-chip:hover { background: var(--chip-hover); }
+
+/* Answer area */
+#cinechat-answer {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--panel-fg);
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Personality switcher */
+#cinechat-personalities {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.personality-btn {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 18px;
+  opacity: 0.5;
+  transition: all 0.15s ease;
+}
+
+.personality-btn:hover {
+  opacity: 0.8;
+  border-color: var(--muted);
+  transform: scale(1.05);
+}
+
+.personality-btn.active {
+  opacity: 1;
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.15);
+}
+
+#cinechat-root.cinechat-light .personality-btn.active {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
