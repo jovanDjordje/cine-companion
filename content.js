@@ -255,7 +255,6 @@ function ensureOverlay() {
           <button class="personality-btn" data-personality="moviebuff" title="Movie Buff">📽️</button>
           <button class="personality-btn" data-personality="comedy" title="Comedy">😂</button>
           <button class="personality-btn" data-personality="vulcan" title="Vulcan">🖖</button>
-          <button class="personality-btn" data-personality="drama" title="Drama Queen">🎭</button>
         </div>
       </div>
 
