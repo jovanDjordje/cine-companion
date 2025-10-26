@@ -32,12 +32,19 @@
     <h1>CineChat MVP — Options</h1>
     <label>AI Personality</label>
     <select id="personality">
-      <option value="neutral">🎬 Neutral - Standard movie companion</option>
-      <option value="moviebuff">📽️ Movie Buff - Enthusiastic film nerd</option>
+      <option value="youtube">▶️ YouTube - Internet-savvy, music & creators</option>
+      <option value="moviebuff">📽️ Movie Buff - Enthusiastic film nerd (default Netflix)</option>
       <option value="comedy">😂 Comedy - Sarcastic and hilarious</option>
       <option value="vulcan">🖖 Vulcan - Logical and emotionless (Star Trek)</option>
+      <option value="custom">✏️ Custom - Define your own personality</option>
     </select>
     <small>Changes how the AI responds to your questions</small>
+
+    <div id="customPersonalitySection" style="margin-top:12px; display:none;">
+      <label>Custom Personality Prompt</label>
+      <textarea id="customPersonality" rows="6" style="width:100%; padding:8px; font-family:monospace; font-size:13px;" placeholder="Example: You are an excited sports commentator who treats every movie scene like a live sports event. Use phrases like 'AND HERE WE GO!', 'What a move!', 'The tension is PALPABLE!'"></textarea>
+      <small>Define how you want the AI to behave. Be specific about tone, phrases, and style.</small>
+    </div>
 
     <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
 

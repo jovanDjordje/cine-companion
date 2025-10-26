@@ -4,14 +4,25 @@
 
 // ---- Config / state ----
 const CAP_BUFFER_SECS = 7200; // keep last 2 hours (full movies)
+const TICK_INTERVAL_MS = 300; // Caption polling interval
+const MAX_QUESTION_LENGTH = 500; // Character limit for questions
 const buffer = []; // { t0, t1, text }
 let videoRef = null;
 let allowSpoilers = false;
 let _lastAdded = "";
 let _lastURL = location.href; // Track current video URL for navigation detection
 let _cachedTitle = null; // Cache video title to prevent flickering
+let _cachedPersonality = "neutral"; // Cache personality to avoid repeated storage calls
 let chatHistory = []; // Store conversation history for context
 const MAX_CHAT_HISTORY = 10; // Keep last 10 Q&A pairs
+
+// Listen for personality changes in storage
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.personality) {
+    _cachedPersonality = changes.personality.newValue;
+    console.log("[CineChat] Personality changed to:", _cachedPersonality);
+  }
+});
 
 // ---- Buffer helpers ----
 function trimBuffer(now) {
@@ -210,17 +221,92 @@ function readNetflixCaptions(now) {
   }
 }
 
-// ---- Preview renderer (GLOBAL so tick() can call it) ----
-function renderPreview() {
-  const showBuf = document.getElementById("cinechat-showbuf");
-  const preview = document.getElementById("cinechat-preview");
-  if (!showBuf || !preview) return;
+// ---- Helper: Get personality icon (GLOBAL) ----
+function getPersonalityIcon(personality) {
+  const icons = {
+    neutral: "🎬",
+    moviebuff: "📽️",
+    comedy: "😂",
+    vulcan: "🖖",
+    youtube: "▶️",
+    custom: "✏️"
+  };
+  return icons[personality] || "🎬";
+}
 
-  if (!showBuf.checked) {
-    preview.style.display = "none";
+// ---- Helper: Safe markdown to HTML converter (prevents XSS) ----
+function parseMarkdown(text) {
+  // First, escape any HTML to prevent XSS
+  const escapeHTML = (str) => {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  };
+
+  let html = escapeHTML(text);
+
+  // Convert markdown to HTML (safe because we escaped HTML first)
+
+  // Bold: **text** → <strong>text</strong> (process first to avoid conflicts)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+  // Italic: *text* → <em>text</em> (only if not followed/preceded by another *)
+  // Note: Process after bold to avoid conflicts with **
+  html = html.replace(/([^*]|^)\*([^*]+?)\*([^*]|$)/g, '$1<em>$2</em>$3');
+
+  // Bullet lists: convert lines starting with * or - to <li>
+  const lines = html.split('\n');
+  let inList = false;
+  const processedLines = [];
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+    // Check if line is a bullet point
+    if (trimmed.match(/^[\*\-]\s+/)) {
+      if (!inList) {
+        processedLines.push('<ul style="margin: 8px 0; padding-left: 20px;">');
+        inList = true;
+      }
+      // Remove the bullet marker and wrap in <li>
+      const content = trimmed.replace(/^[\*\-]\s+/, '');
+      processedLines.push(`<li style="margin: 4px 0;">${content}</li>`);
+    } else {
+      if (inList) {
+        processedLines.push('</ul>');
+        inList = false;
+      }
+      processedLines.push(line);
+    }
+  }
+
+  if (inList) {
+    processedLines.push('</ul>');
+  }
+
+  html = processedLines.join('\n');
+
+  // Preserve line breaks (convert double newlines to <br><br>)
+  html = html.replace(/\n\n/g, '<br><br>');
+  html = html.replace(/\n/g, '<br>');
+
+  return html;
+}
+
+// ---- Preview renderer (GLOBAL so tick() can call it) ----
+// Cache DOM elements to avoid repeated queries
+let _previewShowBuf = null;
+let _previewElement = null;
+
+function renderPreview() {
+  if (!_previewShowBuf) _previewShowBuf = document.getElementById("cinechat-showbuf");
+  if (!_previewElement) _previewElement = document.getElementById("cinechat-preview");
+  if (!_previewShowBuf || !_previewElement) return;
+
+  if (!_previewShowBuf.checked) {
+    _previewElement.style.display = "none";
     return;
   }
-  preview.style.display = "block";
+  _previewElement.style.display = "block";
 
   // show last 5 unique non-empty lines from buffer (most recent first)
   const seen = new Set();
@@ -232,7 +318,7 @@ function renderPreview() {
       seen.add(t);
     }
   }
-  preview.textContent = lines.reverse().join("\n");
+  _previewElement.textContent = lines.reverse().join("\n");
 }
 
 // ---- Overlay UI ----
@@ -275,11 +361,12 @@ function ensureOverlay() {
       </div>
     </div>
     <div id="cinechat-personalities-float">
-      <div style="font-size:11px; color:#cbd5e1; font-weight:600; margin-right:4px;">Personality:</div>
-      <button class="personality-btn" data-personality="neutral" title="Neutral">🎬</button>
+      <div style="font-size:10px; color:#cbd5e1; font-weight:600; margin-right:4px;">AI:</div>
+      <button class="personality-btn" data-personality="youtube" title="YouTube/Music">▶️</button>
       <button class="personality-btn" data-personality="moviebuff" title="Movie Buff">📽️</button>
       <button class="personality-btn" data-personality="comedy" title="Comedy">😂</button>
       <button class="personality-btn" data-personality="vulcan" title="Vulcan">🖖</button>
+      <button class="personality-btn" data-personality="custom" title="Custom">✏️</button>
     </div>
   `;
   document.documentElement.appendChild(root);
@@ -304,6 +391,24 @@ function ensureOverlay() {
   const header = root.querySelector("#cinechat-header");
   makeDraggable(root, header);
 
+  // Enter key to send (Shift+Enter for new line) - MUST BE FIRST
+  q.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault(); // Prevent new line
+      e.stopPropagation(); // Stop Netflix/YouTube from seeing it
+      const question = q.value.trim();
+      if (question) {
+        askLLM(question);
+        q.value = ""; // Clear input
+      }
+    }
+    // If Shift+Enter, allow default behavior (new line) but still block from platform
+    else {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+  }, true); // capture phase
+
   // Prevent YouTube/Netflix keyboard shortcuts while typing
   // Strategy: Stop propagation (so Netflix doesn't see it) but allow default typing behavior
   const blockKeys = (e) => {
@@ -313,8 +418,7 @@ function ensureOverlay() {
     // DON'T preventDefault - we want normal typing to work!
   };
 
-  // Block on textarea (main input area)
-  q.addEventListener("keydown", blockKeys, true); // capture phase
+  // Block on other key events
   q.addEventListener("keyup", blockKeys, true);
   q.addEventListener("keypress", blockKeys, true);
 
@@ -332,9 +436,14 @@ function ensureOverlay() {
   // Personality switcher
   const personalityBtns = root.querySelectorAll(".personality-btn");
 
-  // Load and highlight current personality
-  chrome.storage.local.get({ personality: "neutral" }, (cfg) => {
+  // Auto-detect best default personality based on platform
+  const hostname = location.hostname;
+  const defaultPersonality = hostname.includes("youtube.com") ? "youtube" : "moviebuff";
+
+  // Load and highlight current personality (and cache it)
+  chrome.storage.local.get({ personality: defaultPersonality }, (cfg) => {
     const currentPersonality = cfg.personality;
+    _cachedPersonality = currentPersonality; // Cache it
     root.setAttribute("data-personality", currentPersonality);
     personalityBtns.forEach((btn) => {
       if (btn.dataset.personality === currentPersonality) {
@@ -355,13 +464,26 @@ function ensureOverlay() {
       // Update root attribute for gradient
       root.setAttribute("data-personality", newPersonality);
 
+      // Update cache immediately
+      _cachedPersonality = newPersonality;
+
       // Save to storage
       chrome.storage.local.set({ personality: newPersonality });
 
-      // Visual feedback - add to chat instead
+      // Visual feedback - add to chat instead (XSS-safe)
       const feedbackDiv = document.createElement("div");
       feedbackDiv.className = "chat-message chat-assistant";
-      feedbackDiv.innerHTML = `<div class="chat-icon">${btn.textContent}</div><div class="chat-bubble">Switched to ${btn.title} personality! 🎭</div>`;
+
+      const iconDiv = document.createElement("div");
+      iconDiv.className = "chat-icon";
+      iconDiv.textContent = btn.textContent;
+
+      const bubble = document.createElement("div");
+      bubble.className = "chat-bubble";
+      bubble.innerHTML = parseMarkdown(`Switched to ${btn.title} personality! 🎭`);
+
+      feedbackDiv.appendChild(iconDiv);
+      feedbackDiv.appendChild(bubble);
       chatContainer.appendChild(feedbackDiv);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     });
@@ -383,25 +505,28 @@ function ensureOverlay() {
     chatContainer.innerHTML = "";
   });
 
-  // Helper: Add message to chat
+  // Helper: Add message to chat (XSS-safe, uses cached personality)
   function addChatMessage(role, content) {
     const msgDiv = document.createElement("div");
     msgDiv.className = `chat-message chat-${role}`;
 
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
+
     if (role === "user") {
-      msgDiv.innerHTML = `<div class="chat-bubble">${content}</div>`;
+      // User messages: plain text (no formatting needed)
+      bubble.textContent = content;
+      msgDiv.appendChild(bubble);
     } else {
-      // Get current personality for icon
-      chrome.storage.local.get({ personality: "neutral" }, (cfg) => {
-        const icons = {
-          neutral: "🎬",
-          moviebuff: "📽️",
-          comedy: "😂",
-          vulcan: "🖖"
-        };
-        const icon = icons[cfg.personality] || "🎬";
-        msgDiv.innerHTML = `<div class="chat-icon">${icon}</div><div class="chat-bubble">${content}</div>`;
-      });
+      // AI messages: parse markdown for rich formatting (still XSS-safe)
+      bubble.innerHTML = parseMarkdown(content);
+
+      // Use cached personality for icon (no storage call needed)
+      const iconDiv = document.createElement("div");
+      iconDiv.className = "chat-icon";
+      iconDiv.textContent = getPersonalityIcon(_cachedPersonality);
+      msgDiv.appendChild(iconDiv);
+      msgDiv.appendChild(bubble);
     }
 
     chatContainer.appendChild(msgDiv);
@@ -416,6 +541,23 @@ function ensureOverlay() {
       q.value = ""; // Clear input
     }
   });
+
+  // Netflix focus fix: prevent video player from stealing focus
+  q.addEventListener("mousedown", (e) => {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  q.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    q.focus(); // Force focus back
+  }, true);
+
+  q.addEventListener("focus", (e) => {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
 
   // preview checkbox
   showBuf.addEventListener("change", renderPreview);
@@ -432,20 +574,30 @@ function ensureOverlay() {
   }
 
   btnRecap.addEventListener("click", () => {
-    askLLM("Give a concise recap (3–5 sentences) of what's happened in the last few minutes.", "📖 Recap");
+    askLLM("Give a concise recap (3–5 sentences) of what's happened in the last few minutes.", "📖 Recap", true); // Skip validation
   });
 
   btnTrivia.addEventListener("click", () => {
-    askLLM("Give me 3 interesting trivia facts about this movie/video/song. Keep it spoiler-free and fun!", "🎲 Trivia");
+    askLLM("Give me 3 interesting trivia facts about this movie/video/song. Keep it spoiler-free and fun!", "🎲 Trivia", true); // Skip validation
   });
 
   btnComments.addEventListener("click", () => {
     const comments = scrapeYouTubeComments();
     if (!comments || comments.length === 0) {
-      // Add error message to chat
+      // Add error message to chat (XSS-safe)
       const errorDiv = document.createElement("div");
       errorDiv.className = "chat-message chat-assistant";
-      errorDiv.innerHTML = `<div class="chat-icon">📝</div><div class="chat-bubble">No comments found. Try scrolling down to load comments first.</div>`;
+
+      const iconDiv = document.createElement("div");
+      iconDiv.className = "chat-icon";
+      iconDiv.textContent = "📝";
+
+      const bubble = document.createElement("div");
+      bubble.className = "chat-bubble";
+      bubble.innerHTML = parseMarkdown("No comments found. Try scrolling down to load comments first.");
+
+      errorDiv.appendChild(iconDiv);
+      errorDiv.appendChild(bubble);
       chatContainer.appendChild(errorDiv);
       chatContainer.scrollTop = chatContainer.scrollHeight;
       return;
@@ -458,33 +610,81 @@ function ensureOverlay() {
 
 Comments:
 ${commentsText}`;
-    askLLM(prompt, "💬 Sum Comments");
+    askLLM(prompt, "💬 Sum Comments", true); // Skip validation - comments can be long
   });
 }
 
 // ---- LLM call helper ----
-async function askLLM(question, displayText = null) {
+async function askLLM(question, displayText = null, skipValidation = false) {
   const chatContainer = document.getElementById("cinechat-chat-container");
+  const askBtn = document.getElementById("cinechat-ask");
   if (!chatContainer) return;
 
-  // Add user message to chat and history
+  // Input validation (skip for automated/programmatic queries)
+  if (!question || question.trim().length === 0) {
+    return; // Empty question, ignore
+  }
+
+  // Only validate length for user-typed questions (not automated queries like comment summarization)
+  if (!skipValidation && question.length > MAX_QUESTION_LENGTH) {
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "chat-message chat-assistant";
+
+    const errorIconDiv = document.createElement("div");
+    errorIconDiv.className = "chat-icon";
+    errorIconDiv.textContent = "⚠️";
+
+    const errorBubble = document.createElement("div");
+    errorBubble.className = "chat-bubble";
+    errorBubble.innerHTML = parseMarkdown(`Question too long (max ${MAX_QUESTION_LENGTH} characters). Please shorten it.`);
+
+    errorDiv.appendChild(errorIconDiv);
+    errorDiv.appendChild(errorBubble);
+    chatContainer.appendChild(errorDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    return;
+  }
+
+  // Rate limiting: Disable button while request is in flight
+  if (askBtn) {
+    askBtn.disabled = true;
+    askBtn.style.opacity = "0.5";
+    askBtn.style.cursor = "not-allowed";
+  }
+
+  // Add user message to chat and history (XSS-safe)
   const msgDiv = document.createElement("div");
   msgDiv.className = "chat-message chat-user";
-  msgDiv.innerHTML = `<div class="chat-bubble">${displayText || question}</div>`;
+
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble";
+  bubble.textContent = displayText || question;
+
+  msgDiv.appendChild(bubble);
   chatContainer.appendChild(msgDiv);
 
   chatHistory.push({ role: "user", content: question });
 
-  // Trim history if too long
+  // Trim history if too long (keep only last MAX_CHAT_HISTORY * 2 messages)
   if (chatHistory.length > MAX_CHAT_HISTORY * 2) {
-    chatHistory.splice(0, 2); // Remove oldest Q&A pair
+    chatHistory = chatHistory.slice(-(MAX_CHAT_HISTORY * 2));
   }
 
-  // Add "thinking" placeholder
+  // Add "thinking" placeholder (XSS-safe)
   const thinkingDiv = document.createElement("div");
   thinkingDiv.className = "chat-message chat-assistant";
   thinkingDiv.id = "thinking-placeholder";
-  thinkingDiv.innerHTML = `<div class="chat-icon">⏳</div><div class="chat-bubble">Thinking…</div>`;
+
+  const thinkIconDiv = document.createElement("div");
+  thinkIconDiv.className = "chat-icon";
+  thinkIconDiv.textContent = "⏳";
+
+  const thinkBubble = document.createElement("div");
+  thinkBubble.className = "chat-bubble";
+  thinkBubble.innerHTML = parseMarkdown("Thinking…");
+
+  thinkingDiv.appendChild(thinkIconDiv);
+  thinkingDiv.appendChild(thinkBubble);
   chatContainer.appendChild(thinkingDiv);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 
@@ -522,20 +722,20 @@ async function askLLM(question, displayText = null) {
     // Remove thinking placeholder
     thinkingDiv.remove();
 
-    // Add AI response to chat
+    // Add AI response to chat (XSS-safe, uses cached personality)
     const answerDiv = document.createElement("div");
     answerDiv.className = "chat-message chat-assistant";
 
-    chrome.storage.local.get({ personality: "neutral" }, (cfg) => {
-      const icons = {
-        neutral: "🎬",
-        moviebuff: "📽️",
-        comedy: "😂",
-        vulcan: "🖖"
-      };
-      const icon = icons[cfg.personality] || "🎬";
-      answerDiv.innerHTML = `<div class="chat-icon">${icon}</div><div class="chat-bubble">${answer}</div>`;
-    });
+    const answerIconDiv = document.createElement("div");
+    answerIconDiv.className = "chat-icon";
+    answerIconDiv.textContent = getPersonalityIcon(_cachedPersonality);
+
+    const answerBubble = document.createElement("div");
+    answerBubble.className = "chat-bubble";
+    answerBubble.innerHTML = parseMarkdown(answer); // Parse markdown for formatting
+
+    answerDiv.appendChild(answerIconDiv);
+    answerDiv.appendChild(answerBubble);
 
     chatContainer.appendChild(answerDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -545,26 +745,79 @@ async function askLLM(question, displayText = null) {
   } catch (err) {
     thinkingDiv.remove();
 
+    // Add error message to chat (XSS-safe)
     const errorDiv = document.createElement("div");
     errorDiv.className = "chat-message chat-assistant";
-    errorDiv.innerHTML = `<div class="chat-icon">❌</div><div class="chat-bubble">Error: ${err?.message || String(err)}</div>`;
+
+    const errorIconDiv = document.createElement("div");
+    errorIconDiv.className = "chat-icon";
+    errorIconDiv.textContent = "❌";
+
+    const errorBubble = document.createElement("div");
+    errorBubble.className = "chat-bubble";
+    errorBubble.innerHTML = parseMarkdown(`Error: ${err?.message || String(err)}`);
+
+    errorDiv.appendChild(errorIconDiv);
+    errorDiv.appendChild(errorBubble);
     chatContainer.appendChild(errorDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
+  } finally {
+    // Re-enable button after request completes (success or error)
+    if (askBtn) {
+      askBtn.disabled = false;
+      askBtn.style.opacity = "1";
+      askBtn.style.cursor = "pointer";
+    }
+  }
+}
+
+// ---- Helper: Extract video ID from URL (ignore hash changes) ----
+function getVideoId(url) {
+  try {
+    const urlObj = new URL(url);
+    const host = urlObj.hostname;
+
+    if (host.includes("youtube.com")) {
+      // YouTube: extract video ID from query param or path
+      const videoId = urlObj.searchParams.get("v");
+      if (videoId) return `yt_${videoId}`;
+
+      // YouTube shorts: /shorts/VIDEO_ID
+      const shortsMatch = urlObj.pathname.match(/\/shorts\/([^/?]+)/);
+      if (shortsMatch) return `yt_${shortsMatch[1]}`;
+    } else if (host.includes("netflix.com")) {
+      // Netflix: extract from /watch/VIDEO_ID
+      const netflixMatch = urlObj.pathname.match(/\/watch\/(\d+)/);
+      if (netflixMatch) return `nf_${netflixMatch[1]}`;
+    }
+
+    // Fallback: use pathname only (ignore hash and query params)
+    return urlObj.origin + urlObj.pathname;
+  } catch {
+    return url; // If URL parsing fails, use full URL
   }
 }
 
 // ---- Main loop ----
+let _lastVideoId = null;
+
 function tick() {
-  // Detect navigation (URL change) and clear buffer for new video
-  const currentURL = location.href;
-  if (currentURL !== _lastURL) {
-    console.log("[CineChat] Navigation detected - clearing buffer, title cache, and chat history");
+  // Detect navigation to NEW VIDEO (ignore hash/timestamp changes)
+  const currentVideoId = getVideoId(location.href);
+  if (currentVideoId !== _lastVideoId && _lastVideoId !== null) {
+    console.log("[CineChat] New video detected - clearing buffer, title cache, and chat history");
     buffer.length = 0; // Clear buffer
     _lastAdded = "";    // Reset deduplication tracker
     _cachedTitle = null; // Clear cached title for new video
     chatHistory.length = 0; // Clear chat history
-    _lastURL = currentURL;
+    _lastDisplayedTitle = null; // Clear title cache so it updates immediately
+
+    // Clear chat UI
+    const chatContainer = document.getElementById("cinechat-chat-container");
+    if (chatContainer) chatContainer.innerHTML = "";
   }
+  _lastVideoId = currentVideoId;
+  _lastURL = location.href; // Still track full URL for other purposes
 
   const v = getVideo();
   if (v) {
@@ -579,29 +832,41 @@ function tick() {
       readNetflixCaptions(now);
     }
 
-    // refresh preview every tick
-    renderPreview();
+    // Only refresh preview if checkbox is checked (performance optimization)
+    if (_previewShowBuf?.checked) {
+      renderPreview();
+    }
 
-    // update video title in header
+    // Update video title in header (optimized - only updates DOM when changed)
     updateHeaderTitle();
   }
 }
 
 // ---- Update header with current video title ----
+let _titleElement = null;
+let _lastDisplayedTitle = null;
+
 function updateHeaderTitle() {
-  const titleEl = document.getElementById("cinechat-video-title");
-  if (!titleEl) return;
+  if (!_titleElement) _titleElement = document.getElementById("cinechat-video-title");
+  if (!_titleElement) return;
 
   const metadata = getVideoMetadata();
+  let displayTitle;
+
   if (metadata && metadata.title && metadata.title !== "Unknown Video") {
     // Truncate long titles
     const maxLength = 40;
-    const displayTitle = metadata.title.length > maxLength
-      ? metadata.title.substring(0, maxLength) + "..."
-      : metadata.title;
-    titleEl.textContent = `📺 ${displayTitle}`;
+    displayTitle = metadata.title.length > maxLength
+      ? `📺 ${metadata.title.substring(0, maxLength)}...`
+      : `📺 ${metadata.title}`;
   } else {
-    titleEl.textContent = "No video detected";
+    displayTitle = "No video detected";
+  }
+
+  // Only update DOM if title actually changed (performance optimization)
+  if (displayTitle !== _lastDisplayedTitle) {
+    _titleElement.textContent = displayTitle;
+    _lastDisplayedTitle = displayTitle;
   }
 }
 function makeDraggable(container, handle) {
@@ -654,4 +919,10 @@ function makeDraggable(container, handle) {
 
 // Boot
 ensureOverlay();
-setInterval(tick, 300);
+const tickInterval = setInterval(tick, TICK_INTERVAL_MS);
+
+// Clean up interval on page unload to prevent memory leaks
+window.addEventListener("unload", () => {
+  clearInterval(tickInterval);
+  console.log("[CineChat] Cleaned up tick interval");
+});

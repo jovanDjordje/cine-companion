@@ -100,12 +100,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px; height: 46px;
+  width: 40px; height: 40px;
   border-radius: 999px;
   background: var(--accent);
   color: var(--accent-contrast);
   font-weight: 700;
-  font-size: 20px;
+  font-size: 18px;
   box-shadow: var(--shadow);
 }
 
@@ -113,11 +113,11 @@
 #cinechat-personalities-float {
   position: absolute;
   bottom: 0;
-  right: 72px;
-  padding: 8px 10px;
+  right: 56px;
+  padding: 6px 8px;
   background: linear-gradient(135deg, rgba(10,15,22,0.98) 0%, rgba(18,25,35,0.98) 100%);
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: var(--shadow);
   backdrop-filter: saturate(120%) blur(6px);
   opacity: 0;
@@ -125,7 +125,7 @@
   transition: opacity 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 #cinechat-root:has(#cinechat-panel.open) #cinechat-personalities-float {
@@ -311,19 +311,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1.5px solid var(--border);
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255,255,255,0.2);
   border-radius: 6px;
-  background: transparent;
+  background: rgba(255,255,255,0.1);
   font-size: 18px;
-  opacity: 0.5;
+  opacity: 0.7;
   transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
 }
 
 .personality-btn:hover {
-  opacity: 0.8;
-  border-color: var(--muted);
+  opacity: 1;
+  border-color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.15);
   transform: scale(1.05);
 }
 
@@ -331,7 +333,7 @@
   opacity: 1;
   border-color: var(--accent);
   background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.2);
 }
 
 #cinechat-root.cinechat-light .personality-btn.active {
