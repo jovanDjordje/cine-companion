@@ -45,7 +45,7 @@ BE SPOCK. Zero emotion. Maximum logic. Slight condescension.`
 }
 
 function buildPrompt(payload, settings) {
-  const { question, now, allow_spoilers, context, metadata } = payload;
+  const { question, now, allow_spoilers, context, metadata, chatHistory } = payload;
 
   // Extract video metadata for better context
   const videoTitle = metadata?.title || "Unknown Video";
@@ -59,6 +59,17 @@ function buildPrompt(payload, settings) {
   const contextToSend = context.slice(-contextLimit);
   const isFullContext = contextLimit === context.length;
 
+  // Format conversation history if available
+  let conversationContext = "";
+  if (chatHistory && chatHistory.length > 0) {
+    conversationContext = "\n\nCONVERSATION HISTORY (for context - use this to understand pronouns like 'she', 'he', 'it'):\n";
+    chatHistory.slice(-8).forEach((msg) => { // Last 8 messages (4 Q&A pairs)
+      const prefix = msg.role === "user" ? "User" : "You";
+      conversationContext += `${prefix}: ${msg.content}\n`;
+    });
+    conversationContext += "\nCurrent question is a continuation of this conversation.";
+  }
+
   const header = `
 You are a movie/video companion assistant.
 ${personalityInstructions}
@@ -67,25 +78,29 @@ Video: "${videoTitle}" (${platform})
 Current timestamp: ${Math.floor(now / 60)}:${String(Math.floor(now % 60)).padStart(2, '0')}
 
 PRIMARY SOURCES (in priority order):
-1. Provided subtitle context (most reliable for this specific video)
-2. Your general knowledge about "${videoTitle}"
-3. Your general knowledge about the topic/subject
+1. Conversation history (if user asks about "she/he/it", refer to previous messages)
+2. Provided subtitle context (most reliable for this specific video)
+3. Your general knowledge about "${videoTitle}"
+4. Your general knowledge about the topic/subject
 
 CONTEXT WINDOW: ${isFullContext ? 'Full video context available' : `Last ~${Math.floor(contextToSend[0]?.t0 ? (now - contextToSend[0].t0) / 60 : 15)} minutes of subtitles`}
 
 Rules:
+- If user uses pronouns (she/he/it/they), check CONVERSATION HISTORY first to understand who they're referring to
 - Base answers on subtitle context when the question is about specific events or dialogue happening in the video
 - You MAY supplement with your general knowledge about "${videoTitle}" when helpful
-- If asked about earlier content not in the subtitle context, use your general knowledge about "${videoTitle}"
 - Avoid spoilers beyond the current timestamp unless explicitly allowed
 - Keep answers concise and relevant
+- Maintain conversation context across multiple questions
 `;
 
   const ctxLines = contextToSend
     .map((c) => `[${c.t0.toFixed(1)}–${c.t1.toFixed(1)}] ${c.text}`)
     .join("\n");
 
-  const user = `Question: ${question}
+  const user = `${conversationContext}
+
+Question: ${question}
 Now (seconds): ${now.toFixed(1)}
 Allow spoilers: ${allow_spoilers ? "true" : "false"}
 

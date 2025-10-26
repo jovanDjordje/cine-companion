@@ -161,8 +161,42 @@ When making changes, verify:
 - Check page console (F12) for content script errors
 - Verify API key is set in extension options
 
-## Recent Improvements (MVP 1.1)
+## Recent Improvements
 
+### MVP 1.5 - Personality System & Features
+**✅ Completed:**
+- 4 AI personalities with distinct behaviors (Neutral, Movie Buff, Comedy, Vulcan)
+- Personality quick-switcher UI with emoji buttons
+- 3 LLM provider support: OpenAI-compatible, Ollama (local), Google AI (Gemini)
+- YouTube comments summarization feature
+- Quick action buttons: Recap, Trivia, Comments (YouTube only)
+- Personality-based gradient backgrounds that change on selection
+
+### Phase 3 - Chat Interface (LATEST)
+**✅ Completed:**
+- Chat bubble UI replacing single answer area
+- Conversation history tracking (last 10 Q&A pairs)
+- Chat history sent to AI for pronoun resolution ("she", "he", "it" references)
+- User messages: right-aligned blue bubbles
+- AI messages: left-aligned bubbles with personality icons
+- Clear chat button
+- Input field moved to bottom (inline with Ask button)
+- Enhanced visual separation:
+  - Vibrant personality gradients (neutral blue, moviebuff purple, comedy gold, vulcan cyan)
+  - Brightened UI text (#f8f9fa) for better readability
+  - Distinct input section with semi-transparent background panel
+  - Chat container with subtle background and borders
+  - Enhanced input field with darker background and 2px borders
+  - Empty state message when no chat history
+- Auto-scroll to latest message
+- Chat history cleared on video navigation
+
+**Key files updated:**
+- content.js: Chat history state (line 13-14), chat bubble rendering (line 468-551)
+- background.js: Conversation context in prompts (line 48-71, 64-70)
+- overlay.css: Gradient themes (line 16-92), section separation (line 131-169), chat bubbles (line 320-348)
+
+### MVP 1.1 - Core Improvements
 **✅ Completed:**
 - Buffer capacity increased from 10 minutes to 2 hours (full movie support)
 - Video metadata extraction (title, URL) for enhanced AI context

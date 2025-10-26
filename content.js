@@ -10,6 +10,8 @@ let allowSpoilers = false;
 let _lastAdded = "";
 let _lastURL = location.href; // Track current video URL for navigation detection
 let _cachedTitle = null; // Cache video title to prevent flickering
+let chatHistory = []; // Store conversation history for context
+const MAX_CHAT_HISTORY = 10; // Keep last 10 Q&A pairs
 
 // ---- Buffer helpers ----
 function trimBuffer(now) {
@@ -248,38 +250,36 @@ function ensureOverlay() {
         <div id="cinechat-small"><kbd>Ctrl+Shift+C</kbd> to toggle</div>
       </div>
 
-      <div id="cinechat-personalities">
-        <div style="font-size:10px; color:#999; margin-bottom:4px;">Personality:</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="personality-btn" data-personality="neutral" title="Neutral">🎬</button>
-          <button class="personality-btn" data-personality="moviebuff" title="Movie Buff">📽️</button>
-          <button class="personality-btn" data-personality="comedy" title="Comedy">😂</button>
-          <button class="personality-btn" data-personality="vulcan" title="Vulcan">🖖</button>
-        </div>
-      </div>
-
       <div id="cinechat-row">
         <label><input type="checkbox" id="cinechat-spoil"> Allow spoilers</label>
-      </div>
-
-      <textarea id="cinechat-q" placeholder="Ask e.g. 'Why is he upset here?'"></textarea>
-      <button id="cinechat-ask">Ask</button>
-
-      <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
         <label style="font-size:12px;color:#bbb;">
-          <input type="checkbox" id="cinechat-showbuf" checked> Show last captions
+          <input type="checkbox" id="cinechat-showbuf"> Captions
         </label>
       </div>
 
       <div id="cinechat-preview" style="display:none;"></div>
 
-      <div id="cinechat-quick">
-        <button class="cinechat-chip" id="cinechat-q-recap">📖 Recap</button>
-        <button class="cinechat-chip" id="cinechat-q-trivia">🎲 Trivia</button>
-        <button class="cinechat-chip" id="cinechat-q-comments" style="display:none;">💬 Comments</button>
-      </div>
+      <div id="cinechat-chat-container"></div>
 
-      <div id="cinechat-answer"></div>
+      <div id="cinechat-input-area">
+        <div id="cinechat-quick">
+          <button class="cinechat-chip" id="cinechat-q-recap">📖 Recap</button>
+          <button class="cinechat-chip" id="cinechat-q-trivia">🎲 Trivia</button>
+          <button class="cinechat-chip" id="cinechat-q-comments" style="display:none;">💬 Sum Comments</button>
+          <button class="cinechat-chip" id="cinechat-clear" style="opacity:0.6;">🗑️ Clear</button>
+        </div>
+        <div id="cinechat-input-row">
+          <textarea id="cinechat-q" placeholder="Ask anything..."></textarea>
+          <button id="cinechat-ask">Ask</button>
+        </div>
+      </div>
+    </div>
+    <div id="cinechat-personalities-float">
+      <div style="font-size:11px; color:#cbd5e1; font-weight:600; margin-right:4px;">Personality:</div>
+      <button class="personality-btn" data-personality="neutral" title="Neutral">🎬</button>
+      <button class="personality-btn" data-personality="moviebuff" title="Movie Buff">📽️</button>
+      <button class="personality-btn" data-personality="comedy" title="Comedy">😂</button>
+      <button class="personality-btn" data-personality="vulcan" title="Vulcan">🖖</button>
     </div>
   `;
   document.documentElement.appendChild(root);
@@ -296,9 +296,10 @@ function ensureOverlay() {
   const panel = root.querySelector("#cinechat-panel");
   const askBtn = root.querySelector("#cinechat-ask");
   const q = root.querySelector("#cinechat-q");
-  const ans = root.querySelector("#cinechat-answer");
+  const chatContainer = root.querySelector("#cinechat-chat-container");
   const spoil = root.querySelector("#cinechat-spoil");
   const showBuf = root.querySelector("#cinechat-showbuf");
+  const btnClear = root.querySelector("#cinechat-clear");
 
   const header = root.querySelector("#cinechat-header");
   makeDraggable(root, header);
@@ -334,6 +335,7 @@ function ensureOverlay() {
   // Load and highlight current personality
   chrome.storage.local.get({ personality: "neutral" }, (cfg) => {
     const currentPersonality = cfg.personality;
+    root.setAttribute("data-personality", currentPersonality);
     personalityBtns.forEach((btn) => {
       if (btn.dataset.personality === currentPersonality) {
         btn.classList.add("active");
@@ -350,16 +352,18 @@ function ensureOverlay() {
       personalityBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
 
+      // Update root attribute for gradient
+      root.setAttribute("data-personality", newPersonality);
+
       // Save to storage
       chrome.storage.local.set({ personality: newPersonality });
 
-      // Visual feedback
-      ans.textContent = `Switched to ${btn.title} personality! 🎭`;
-      setTimeout(() => {
-        if (ans.textContent.includes("Switched to")) {
-          ans.textContent = "";
-        }
-      }, 2000);
+      // Visual feedback - add to chat instead
+      const feedbackDiv = document.createElement("div");
+      feedbackDiv.className = "chat-message chat-assistant";
+      feedbackDiv.innerHTML = `<div class="chat-icon">${btn.textContent}</div><div class="chat-bubble">Switched to ${btn.title} personality! 🎭</div>`;
+      chatContainer.appendChild(feedbackDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
     });
   });
 
@@ -373,10 +377,44 @@ function ensureOverlay() {
     }
   });
 
+  // Clear chat button
+  btnClear.addEventListener("click", () => {
+    chatHistory.length = 0;
+    chatContainer.innerHTML = "";
+  });
+
+  // Helper: Add message to chat
+  function addChatMessage(role, content) {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `chat-message chat-${role}`;
+
+    if (role === "user") {
+      msgDiv.innerHTML = `<div class="chat-bubble">${content}</div>`;
+    } else {
+      // Get current personality for icon
+      chrome.storage.local.get({ personality: "neutral" }, (cfg) => {
+        const icons = {
+          neutral: "🎬",
+          moviebuff: "📽️",
+          comedy: "😂",
+          vulcan: "🖖"
+        };
+        const icon = icons[cfg.personality] || "🎬";
+        msgDiv.innerHTML = `<div class="chat-icon">${icon}</div><div class="chat-bubble">${content}</div>`;
+      });
+    }
+
+    chatContainer.appendChild(msgDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+
   // ask button → call LLM
   askBtn.addEventListener("click", () => {
     const question = q.value.trim();
-    if (question) askLLM(question, ans);
+    if (question) {
+      askLLM(question);
+      q.value = ""; // Clear input
+    }
   });
 
   // preview checkbox
@@ -394,23 +432,22 @@ function ensureOverlay() {
   }
 
   btnRecap.addEventListener("click", () => {
-    askLLM(
-      "Give a concise recap (3–5 sentences) of what's happened in the last few minutes.",
-      ans
-    );
+    askLLM("Give a concise recap (3–5 sentences) of what's happened in the last few minutes.", "📖 Recap");
   });
 
   btnTrivia.addEventListener("click", () => {
-    askLLM(
-      "Give me 3 interesting trivia facts about this movie/video/song. Keep it spoiler-free and fun!",
-      ans
-    );
+    askLLM("Give me 3 interesting trivia facts about this movie/video/song. Keep it spoiler-free and fun!", "🎲 Trivia");
   });
 
   btnComments.addEventListener("click", () => {
     const comments = scrapeYouTubeComments();
     if (!comments || comments.length === 0) {
-      ans.textContent = "No comments found. Try scrolling down to load comments first.";
+      // Add error message to chat
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "chat-message chat-assistant";
+      errorDiv.innerHTML = `<div class="chat-icon">📝</div><div class="chat-bubble">No comments found. Try scrolling down to load comments first.</div>`;
+      chatContainer.appendChild(errorDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
       return;
     }
     const commentsText = comments.slice(0, 20).join("\n---\n");
@@ -421,15 +458,35 @@ function ensureOverlay() {
 
 Comments:
 ${commentsText}`;
-    askLLM(prompt, ans);
+    askLLM(prompt, "💬 Sum Comments");
   });
 }
 
 // ---- LLM call helper ----
-async function askLLM(question, ansEl) {
-  const ans = ansEl || document.getElementById("cinechat-answer");
-  if (!ans) return;
-  ans.textContent = "Thinking…";
+async function askLLM(question, displayText = null) {
+  const chatContainer = document.getElementById("cinechat-chat-container");
+  if (!chatContainer) return;
+
+  // Add user message to chat and history
+  const msgDiv = document.createElement("div");
+  msgDiv.className = "chat-message chat-user";
+  msgDiv.innerHTML = `<div class="chat-bubble">${displayText || question}</div>`;
+  chatContainer.appendChild(msgDiv);
+
+  chatHistory.push({ role: "user", content: question });
+
+  // Trim history if too long
+  if (chatHistory.length > MAX_CHAT_HISTORY * 2) {
+    chatHistory.splice(0, 2); // Remove oldest Q&A pair
+  }
+
+  // Add "thinking" placeholder
+  const thinkingDiv = document.createElement("div");
+  thinkingDiv.className = "chat-message chat-assistant";
+  thinkingDiv.id = "thinking-placeholder";
+  thinkingDiv.innerHTML = `<div class="chat-icon">⏳</div><div class="chat-bubble">Thinking…</div>`;
+  chatContainer.appendChild(thinkingDiv);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
 
   const v = getVideo();
   const now = v ? v.currentTime : 0;
@@ -438,7 +495,6 @@ async function askLLM(question, ansEl) {
   let context = buffer.slice();
   if (!allowSpoilers) context = context.filter((c) => c.t0 <= now + 10);
 
-  // Include video metadata for better AI context
   const metadata = getVideoMetadata();
 
   const payload = {
@@ -446,18 +502,54 @@ async function askLLM(question, ansEl) {
     now,
     allow_spoilers: allowSpoilers,
     context,
-    metadata  // Add video title, URL, platform
+    metadata,
+    chatHistory: chatHistory.slice(-10) // Send last 10 messages
   };
+
   try {
+    // Check if extension context is valid
+    if (!chrome?.runtime?.sendMessage) {
+      throw new Error("Extension context invalidated. Please refresh the page.");
+    }
+
     const reply = await chrome.runtime.sendMessage({
       type: "CINECHAT_ASK",
       payload,
     });
-    ans.textContent = reply?.answer || "(no answer)";
+
+    const answer = reply?.answer || "(no answer)";
+
+    // Remove thinking placeholder
+    thinkingDiv.remove();
+
+    // Add AI response to chat
+    const answerDiv = document.createElement("div");
+    answerDiv.className = "chat-message chat-assistant";
+
+    chrome.storage.local.get({ personality: "neutral" }, (cfg) => {
+      const icons = {
+        neutral: "🎬",
+        moviebuff: "📽️",
+        comedy: "😂",
+        vulcan: "🖖"
+      };
+      const icon = icons[cfg.personality] || "🎬";
+      answerDiv.innerHTML = `<div class="chat-icon">${icon}</div><div class="chat-bubble">${answer}</div>`;
+    });
+
+    chatContainer.appendChild(answerDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    chatHistory.push({ role: "assistant", content: answer });
+
   } catch (err) {
-    ans.textContent = `Error: ${
-      err && err.message ? err.message : String(err)
-    }`;
+    thinkingDiv.remove();
+
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "chat-message chat-assistant";
+    errorDiv.innerHTML = `<div class="chat-icon">❌</div><div class="chat-bubble">Error: ${err?.message || String(err)}</div>`;
+    chatContainer.appendChild(errorDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 }
 
@@ -466,10 +558,11 @@ function tick() {
   // Detect navigation (URL change) and clear buffer for new video
   const currentURL = location.href;
   if (currentURL !== _lastURL) {
-    console.log("[CineChat] Navigation detected - clearing buffer and title cache");
+    console.log("[CineChat] Navigation detected - clearing buffer, title cache, and chat history");
     buffer.length = 0; // Clear buffer
     _lastAdded = "";    // Reset deduplication tracker
     _cachedTitle = null; // Clear cached title for new video
+    chatHistory.length = 0; // Clear chat history
     _lastURL = currentURL;
   }
 
