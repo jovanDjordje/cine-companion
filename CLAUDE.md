@@ -59,7 +59,7 @@ User receives answer in overlay UI
 - **Metadata extraction**: `getVideoMetadata()` extracts video title and URL from page DOM
 - **UI rendering**: Creates draggable overlay with FAB toggle button
 - **Main loop**: `tick()` runs every 300ms to poll for new captions and detect navigation
-- **Event handling**: Keyboard shortcuts (Ctrl+Shift+C), button clicks, drag
+- **Event handling**: Keyboard shortcuts (Alt+C), button clicks, drag
 
 **`options.html` + `options.js`** - Extension configuration page
 - Stores: API provider, base URL, model name, API key, max tokens
@@ -151,7 +151,7 @@ When making changes, verify:
 - [ ] Captions are captured (check preview window)
 - [ ] LLM responses work with valid API key
 - [ ] Spoiler toggle correctly filters context
-- [ ] UI is draggable and responds to Ctrl+Shift+C
+- [ ] UI is draggable and responds to Alt+C
 - [ ] Both light and dark modes render correctly
 - [ ] No console errors in page or background contexts
 

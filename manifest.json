@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "CineChat MVP",
+  "name": "SubtAIpal",
   "version": "0.1.0",
-  "description": "Ask AI about what's happening in the current scene.",
+  "description": "Your AI companion for movies and videos. Chat about what's happening using real-time subtitles.",
   "action": {
-    "default_title": "CineChat MVP"
+    "default_title": "SubtAIpal"
   },
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [

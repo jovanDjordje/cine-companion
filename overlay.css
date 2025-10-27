@@ -1,5 +1,5 @@
 /* ============================
-   CineChat MVP - overlay.css
+   SubtAIpal - overlay.css
    ============================ */
 
 /* Root & Theme */
@@ -200,6 +200,16 @@
   display: flex;
   align-items: flex-end;
   gap: 8px;
+}
+
+/* Character counter */
+#cinechat-char-counter {
+  font-size: 11px;
+  color: var(--muted-text);
+  text-align: right;
+  margin-top: 4px;
+  font-weight: 600;
+  transition: color 0.2s ease;
 }
 
 #cinechat-q {

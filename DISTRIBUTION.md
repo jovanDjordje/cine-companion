@@ -253,7 +253,7 @@ Never miss a detail while watching YouTube or Netflix! CineChat is your intellig
 1. Install the extension
 2. Configure your API key in Options (OpenAI, Google AI, or Ollama)
 3. Visit YouTube or Netflix
-4. Click the chat bubble icon (or press Ctrl+Shift+C)
+4. Click the chat bubble icon (or press Alt+C)
 5. Start asking questions!
 
 ## 🔧 Supported Platforms

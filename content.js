@@ -1,11 +1,13 @@
 // ==============================
-// CineChat MVP - content.js
+// SubtAIpal - content.js
 // ==============================
 
 // ---- Config / state ----
 const CAP_BUFFER_SECS = 7200; // keep last 2 hours (full movies)
 const TICK_INTERVAL_MS = 300; // Caption polling interval
 const MAX_QUESTION_LENGTH = 500; // Character limit for questions
+const FOCUS_RESTORE_DELAY_MS = 100; // Delay before restoring focus after Netflix steals it
+const RECENT_INTERACTION_WINDOW_MS = 3000; // Time window to consider interaction "recent" (3 seconds)
 const buffer = []; // { t0, t1, text }
 let videoRef = null;
 let allowSpoilers = false;
@@ -20,7 +22,7 @@ const MAX_CHAT_HISTORY = 10; // Keep last 10 Q&A pairs
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.personality) {
     _cachedPersonality = changes.personality.newValue;
-    console.log("[CineChat] Personality changed to:", _cachedPersonality);
+    console.log("[SubtAIpal] Personality changed to:", _cachedPersonality);
   }
 });
 
@@ -74,7 +76,7 @@ function scrapeYouTubeComments() {
     }
   }
 
-  console.log(`[CineChat] Scraped ${comments.length} YouTube comments`);
+  console.log(`[SubtAIpal] Scraped ${comments.length} YouTube comments`);
   return comments.length > 0 ? comments : null;
 }
 
@@ -100,7 +102,7 @@ function getVideoMetadata() {
     if (titleEl) {
       title = titleEl.getAttribute?.("content") || titleEl.textContent?.trim() || title;
     }
-    console.log("[CineChat] YouTube title detected:", title);
+    console.log("[SubtAIpal] YouTube title detected:", title);
   } else if (host.includes("netflix.com")) {
     // Try multiple Netflix title selectors (updated for 2024+ Netflix)
     const titleEl =
@@ -124,8 +126,8 @@ function getVideoMetadata() {
       }
     }
 
-    console.log("[CineChat] Netflix title detected:", title);
-    console.log("[CineChat] Tried selectors - found element:", !!titleEl);
+    console.log("[SubtAIpal] Netflix title detected:", title);
+    console.log("[SubtAIpal] Tried selectors - found element:", !!titleEl);
   }
 
   // Cache the title if it's a good one (not ID-based or unknown)
@@ -165,7 +167,7 @@ function readYouTubeCaptions(now) {
   const text = texts.join(" ").trim();
   if (text) {
     addCue(now - 1.0, now + 0.2, text);
-    // console.log("[CineChat] Captions(textTracks):", text);
+    // console.log("[SubtAIpal] Captions(textTracks):", text);
   }
 }
 
@@ -184,7 +186,7 @@ function readYouTubeCaptionsDOM(now) {
     .trim();
   if (!text) return;
   addCue(now - 1.0, now + 0.2, text);
-  // console.log("[CineChat] Captions(DOM):", text);
+  // console.log("[SubtAIpal] Captions(DOM):", text);
 }
 
 // ---- Netflix: DOM capture ----
@@ -217,7 +219,7 @@ function readNetflixCaptions(now) {
   text = text.replace(/\s+/g, " ").trim();
   if (text) {
     addCue(now - 1.0, now + 0.2, text);
-    // console.log("[CineChat] NF captions:", text);
+    // console.log("[SubtAIpal] NF captions:", text);
   }
 }
 
@@ -331,9 +333,9 @@ function ensureOverlay() {
     <button id="cinechat-toggle">💬</button>
     <div id="cinechat-panel">
       <div id="cinechat-header">
-        <div>CineChat MVP</div>
+        <div>SubtAIpal</div>
         <div id="cinechat-video-title" style="font-size:11px; color:#999; margin-top:2px;">Loading...</div>
-        <div id="cinechat-small"><kbd>Ctrl+Shift+C</kbd> to toggle</div>
+        <div id="cinechat-small"><kbd>Alt+C</kbd> to toggle</div>
       </div>
 
       <div id="cinechat-row">
@@ -357,6 +359,9 @@ function ensureOverlay() {
         <div id="cinechat-input-row">
           <textarea id="cinechat-q" placeholder="Ask anything..."></textarea>
           <button id="cinechat-ask">Ask</button>
+        </div>
+        <div id="cinechat-char-counter">
+          <span id="cinechat-char-count">0</span>/<span>500</span>
         </div>
       </div>
     </div>
@@ -494,7 +499,9 @@ function ensureOverlay() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey && e.shiftKey && e.code === "KeyC") {
+    // Alt+C to toggle panel (changed from Ctrl+Shift+C to avoid conflict with dev tools)
+    if (e.altKey && e.code === "KeyC" && !e.ctrlKey && !e.shiftKey) {
+      e.preventDefault(); // Prevent any default browser behavior
       panel.classList.toggle("open");
     }
   });
@@ -543,21 +550,70 @@ function ensureOverlay() {
   });
 
   // Netflix focus fix: prevent video player from stealing focus
+  let lastInteractionTime = 0;
+  let focusRestoreTimeout = null;
+
+  // Track user interactions with input field
+  q.addEventListener("focus", (e) => {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    lastInteractionTime = Date.now();
+  }, true);
+
+  // Character counter update
+  const charCountEl = root.querySelector("#cinechat-char-count");
+  const charCounterEl = root.querySelector("#cinechat-char-counter");
+
+  q.addEventListener("input", () => {
+    lastInteractionTime = Date.now(); // Update on every keystroke
+
+    // Update character counter
+    const currentLength = q.value.length;
+    charCountEl.textContent = currentLength;
+
+    // Color coding based on length
+    if (currentLength >= 480) {
+      charCounterEl.style.color = "#ff6b6b"; // Red - very close to limit
+    } else if (currentLength >= 400) {
+      charCounterEl.style.color = "#ffd93d"; // Yellow - warning
+    } else {
+      charCounterEl.style.color = "var(--muted-text)"; // Normal gray
+    }
+  });
+
   q.addEventListener("mousedown", (e) => {
     e.stopPropagation();
     e.stopImmediatePropagation();
+    lastInteractionTime = Date.now();
   }, true);
 
   q.addEventListener("click", (e) => {
     e.stopPropagation();
     e.stopImmediatePropagation();
     q.focus(); // Force focus back
+    lastInteractionTime = Date.now();
   }, true);
 
-  q.addEventListener("focus", (e) => {
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-  }, true);
+  // Auto-restore focus when Netflix steals it (on controls hide)
+  q.addEventListener("blur", (e) => {
+    const timeSinceInteraction = Date.now() - lastInteractionTime;
+    const wasRecentlyActive = timeSinceInteraction < RECENT_INTERACTION_WINDOW_MS;
+
+    // Only restore if user was recently typing/interacting
+    if (wasRecentlyActive) {
+      // Clear any pending restore
+      if (focusRestoreTimeout) clearTimeout(focusRestoreTimeout);
+
+      // Restore focus after Netflix's blur event completes
+      focusRestoreTimeout = setTimeout(() => {
+        // Double-check panel is still open before restoring
+        if (panel.classList.contains("open")) {
+          q.focus();
+          console.log("[SubtAIpal] Auto-restored focus (Netflix controls likely hid)");
+        }
+      }, FOCUS_RESTORE_DELAY_MS);
+    }
+  });
 
   // preview checkbox
   showBuf.addEventListener("change", renderPreview);
@@ -648,7 +704,8 @@ async function askLLM(question, displayText = null, skipValidation = false) {
   // Rate limiting: Disable button while request is in flight
   if (askBtn) {
     askBtn.disabled = true;
-    askBtn.style.opacity = "0.5";
+    askBtn.textContent = "Asking...";
+    askBtn.style.opacity = "0.7";
     askBtn.style.cursor = "not-allowed";
   }
 
@@ -765,6 +822,7 @@ async function askLLM(question, displayText = null, skipValidation = false) {
     // Re-enable button after request completes (success or error)
     if (askBtn) {
       askBtn.disabled = false;
+      askBtn.textContent = "Ask";
       askBtn.style.opacity = "1";
       askBtn.style.cursor = "pointer";
     }
@@ -805,7 +863,7 @@ function tick() {
   // Detect navigation to NEW VIDEO (ignore hash/timestamp changes)
   const currentVideoId = getVideoId(location.href);
   if (currentVideoId !== _lastVideoId && _lastVideoId !== null) {
-    console.log("[CineChat] New video detected - clearing buffer, title cache, and chat history");
+    console.log("[SubtAIpal] New video detected - clearing buffer, title cache, and chat history");
     buffer.length = 0; // Clear buffer
     _lastAdded = "";    // Reset deduplication tracker
     _cachedTitle = null; // Clear cached title for new video
@@ -924,5 +982,5 @@ const tickInterval = setInterval(tick, TICK_INTERVAL_MS);
 // Clean up interval on page unload to prevent memory leaks
 window.addEventListener("unload", () => {
   clearInterval(tickInterval);
-  console.log("[CineChat] Cleaned up tick interval");
+  console.log("[SubtAIpal] Cleaned up tick interval");
 });
