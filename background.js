@@ -177,7 +177,7 @@ CRITICAL INSTRUCTIONS:
     .map((c) => `[${c.t0.toFixed(1)}–${c.t1.toFixed(1)}] ${c.text}`)
     .join("\n");
 
-  const user = `${conversationContext}
+  let user = `${conversationContext}
 
 Question: ${question}
 Now (seconds): ${now.toFixed(1)}
@@ -187,7 +187,48 @@ Context (recent subtitles):
 ${ctxLines || "(no subtitle context caught yet)"}
 `;
 
-  return { header, user };
+  // For Comedy personality: Generate 2 responses for variety (Stanford sampling technique)
+  if (settings.personality === "comedy") {
+    user += `
+
+IMPORTANT: Generate 2 different comedic responses to this question. Use this format:
+
+RESPONSE 1:
+[Your first comedic take]
+
+RESPONSE 2:
+[Your second comedic take - different angle/joke/reference]
+
+Both should match your sarcastic personality but offer different perspectives or jokes.`;
+  }
+
+  return { header, user, isComedyVariant: settings.personality === "comedy" };
+}
+
+// Helper: Parse multi-response format and randomly select one
+function selectRandomResponse(rawAnswer, isComedyVariant) {
+  if (!isComedyVariant) return rawAnswer;
+
+  // Try to parse RESPONSE 1: and RESPONSE 2: format
+  const response1Match = rawAnswer.match(/RESPONSE 1:\s*([\s\S]*?)(?=RESPONSE 2:|$)/i);
+  const response2Match = rawAnswer.match(/RESPONSE 2:\s*([\s\S]*?)$/i);
+
+  if (response1Match && response2Match) {
+    const responses = [
+      response1Match[1].trim(),
+      response2Match[1].trim()
+    ];
+
+    // Randomly pick one (50/50)
+    const selectedIndex = Math.floor(Math.random() * 2);
+    const selected = responses[selectedIndex];
+    console.log("[SubtAIpal] Comedy variant: Selected response", selectedIndex + 1);
+    return selected;
+  }
+
+  // Fallback: If parsing fails, return original (LLM didn't follow format)
+  console.warn("[SubtAIpal] Comedy variant: Failed to parse 2 responses, returning full text");
+  return rawAnswer;
 }
 
 async function callOpenAI(settings, payload) {
@@ -195,7 +236,7 @@ async function callOpenAI(settings, payload) {
   if (!apiKey)
     throw new Error("Missing API key (set it in the extension Options).");
 
-  const { header, user } = buildPrompt(payload, settings);
+  const { header, user, isComedyVariant } = buildPrompt(payload, settings);
 
   const resp = await fetch(`${apiBase}/chat/completions`, {
     method: "POST",
@@ -220,13 +261,15 @@ async function callOpenAI(settings, payload) {
   }
 
   const data = await resp.json();
-  const answer = data?.choices?.[0]?.message?.content || "(no content)";
-  return answer;
+  const rawAnswer = data?.choices?.[0]?.message?.content || "(no content)";
+
+  // For Comedy personality, parse and select one of two responses
+  return selectRandomResponse(rawAnswer, isComedyVariant);
 }
 
 async function callOllama(settings, payload) {
   const { apiBase, model, maxTokens } = settings;
-  const { header, user } = buildPrompt(payload, settings);
+  const { header, user, isComedyVariant } = buildPrompt(payload, settings);
 
   const resp = await fetch(`${apiBase}/api/chat`, {
     method: "POST",
@@ -253,8 +296,10 @@ async function callOllama(settings, payload) {
   }
 
   const data = await resp.json();
-  const answer = data?.message?.content || "(no content)";
-  return answer;
+  const rawAnswer = data?.message?.content || "(no content)";
+
+  // For Comedy personality, parse and select one of two responses
+  return selectRandomResponse(rawAnswer, isComedyVariant);
 }
 
 async function callGoogleAI(settings, payload) {
@@ -262,7 +307,7 @@ async function callGoogleAI(settings, payload) {
   if (!apiKey)
     throw new Error("Missing API key (set it in the extension Options).");
 
-  const { header, user } = buildPrompt(payload, settings);
+  const { header, user, isComedyVariant } = buildPrompt(payload, settings);
 
   // Gemini doesn't have separate system/user roles - combine into one prompt
   const combinedPrompt = `${header}\n\n${user}`;
@@ -292,8 +337,10 @@ async function callGoogleAI(settings, payload) {
   }
 
   const data = await resp.json();
-  const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || "(no content)";
-  return answer;
+  const rawAnswer = data?.candidates?.[0]?.content?.parts?.[0]?.text || "(no content)";
+
+  // For Comedy personality, parse and select one of two responses
+  return selectRandomResponse(rawAnswer, isComedyVariant);
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

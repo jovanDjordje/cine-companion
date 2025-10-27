@@ -8,6 +8,7 @@ const TICK_INTERVAL_MS = 300; // Caption polling interval
 const MAX_QUESTION_LENGTH = 500; // Character limit for questions
 const FOCUS_RESTORE_DELAY_MS = 100; // Delay before restoring focus after Netflix steals it
 const RECENT_INTERACTION_WINDOW_MS = 3000; // Time window to consider interaction "recent" (3 seconds)
+const AUTO_FADE_DELAY_MS = 5000; // Fade FAB after 5 seconds of inactivity
 const buffer = []; // { t0, t1, text }
 let videoRef = null;
 let allowSpoilers = false;
@@ -18,13 +19,22 @@ let _cachedPersonality = "neutral"; // Cache personality to avoid repeated stora
 let chatHistory = []; // Store conversation history for context
 const MAX_CHAT_HISTORY = 10; // Keep last 10 Q&A pairs
 
+// Store listener references for cleanup
+let _storageListener = null;
+let _keydownListener = null;
+
+// Auto-fade state
+let _fadeTimeout = null;
+let _rootElement = null;
+
 // Listen for personality changes in storage
-chrome.storage.onChanged.addListener((changes, area) => {
+_storageListener = (changes, area) => {
   if (area === "local" && changes.personality) {
     _cachedPersonality = changes.personality.newValue;
     console.log("[SubtAIpal] Personality changed to:", _cachedPersonality);
   }
-});
+};
+chrome.storage.onChanged.addListener(_storageListener);
 
 // ---- Buffer helpers ----
 function trimBuffer(now) {
@@ -44,6 +54,24 @@ function addCue(t0, t1, text) {
     buffer.push({ t0, t1, text });
   }
   _lastAdded = text;
+}
+
+// ---- Auto-fade helpers ----
+function startFadeTimer() {
+  if (_fadeTimeout) clearTimeout(_fadeTimeout);
+  if (_rootElement) _rootElement.classList.remove("faded");
+
+  _fadeTimeout = setTimeout(() => {
+    // Only fade if panel is closed
+    const panel = document.getElementById("cinechat-panel");
+    if (_rootElement && (!panel || !panel.classList.contains("open"))) {
+      _rootElement.classList.add("faded");
+    }
+  }, AUTO_FADE_DELAY_MS);
+}
+
+function resetFadeTimer() {
+  startFadeTimer(); // Restart the timer
 }
 
 // ---- Video reference ----
@@ -329,13 +357,22 @@ function ensureOverlay() {
 
   const root = document.createElement("div");
   root.id = "cinechat-root";
+  _rootElement = root; // Store reference for fade functionality
   root.innerHTML = `
-    <button id="cinechat-toggle">💬</button>
+    <div id="cinechat-fab-container">
+      <button id="cinechat-toggle">💬</button>
+      <button id="cinechat-drag-handle" title="Drag to move">✋</button>
+    </div>
     <div id="cinechat-panel">
       <div id="cinechat-header">
-        <div>SubtAIpal</div>
-        <div id="cinechat-video-title" style="font-size:11px; color:#999; margin-top:2px;">Loading...</div>
-        <div id="cinechat-small"><kbd>Alt+C</kbd> to toggle</div>
+        <div style="flex:1;">
+          <div>SubtAIpal</div>
+          <div id="cinechat-video-title" style="font-size:11px; color:#999; margin-top:2px;">Loading...</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div id="cinechat-small"><kbd>Alt+C</kbd> to toggle</div>
+          <button id="cinechat-hide" title="Hide extension (refresh page to show again)">✕</button>
+        </div>
       </div>
 
       <div id="cinechat-row">
@@ -385,6 +422,7 @@ function ensureOverlay() {
   } catch {}
 
   const toggle = root.querySelector("#cinechat-toggle");
+  const dragHandle = root.querySelector("#cinechat-drag-handle");
   const panel = root.querySelector("#cinechat-panel");
   const askBtn = root.querySelector("#cinechat-ask");
   const q = root.querySelector("#cinechat-q");
@@ -392,9 +430,13 @@ function ensureOverlay() {
   const spoil = root.querySelector("#cinechat-spoil");
   const showBuf = root.querySelector("#cinechat-showbuf");
   const btnClear = root.querySelector("#cinechat-clear");
+  const btnHide = root.querySelector("#cinechat-hide");
 
   const header = root.querySelector("#cinechat-header");
+
+  // Make header draggable when panel is open, and drag handle draggable when closed
   makeDraggable(root, header);
+  makeDraggable(root, dragHandle);
 
   // Enter key to send (Shift+Enter for new line) - MUST BE FIRST
   q.addEventListener("keydown", (e) => {
@@ -494,22 +536,53 @@ function ensureOverlay() {
     });
   });
 
+  // Toggle button click handler (simple click to open/close)
   toggle.addEventListener("click", () => {
     panel.classList.toggle("open");
+
+    // When panel opens, remove fade; when it closes, restart fade timer
+    if (panel.classList.contains("open")) {
+      root.classList.remove("faded");
+      if (_fadeTimeout) clearTimeout(_fadeTimeout);
+    } else {
+      startFadeTimer();
+    }
   });
 
-  document.addEventListener("keydown", (e) => {
+  // ---- Auto-fade on inactivity ----
+  // Reset fade timer on any interaction with the extension
+  root.addEventListener("mouseenter", resetFadeTimer);
+  root.addEventListener("mousemove", resetFadeTimer);
+  root.addEventListener("click", resetFadeTimer);
+  root.addEventListener("keydown", resetFadeTimer);
+  root.addEventListener("touchstart", resetFadeTimer);
+
+  // Start initial fade timer
+  startFadeTimer();
+
+  _keydownListener = (e) => {
     // Alt+C to toggle panel (changed from Ctrl+Shift+C to avoid conflict with dev tools)
     if (e.altKey && e.code === "KeyC" && !e.ctrlKey && !e.shiftKey) {
       e.preventDefault(); // Prevent any default browser behavior
       panel.classList.toggle("open");
     }
-  });
+  };
+  document.addEventListener("keydown", _keydownListener);
 
   // Clear chat button
   btnClear.addEventListener("click", () => {
     chatHistory.length = 0;
     chatContainer.innerHTML = "";
+  });
+
+  // Hide extension button - completely hides until page refresh
+  btnHide.addEventListener("click", () => {
+    if (confirm("Hide SubtAIpal? It will reappear when you refresh the page.")) {
+      root.style.display = "none";
+      // Clean up timers
+      if (_fadeTimeout) clearTimeout(_fadeTimeout);
+      clearInterval(tickInterval);
+    }
   });
 
   // Helper: Add message to chat (XSS-safe, uses cached personality)
@@ -979,8 +1052,15 @@ function makeDraggable(container, handle) {
 ensureOverlay();
 const tickInterval = setInterval(tick, TICK_INTERVAL_MS);
 
-// Clean up interval on page unload to prevent memory leaks
+// Clean up on page unload to prevent memory leaks
 window.addEventListener("unload", () => {
   clearInterval(tickInterval);
-  console.log("[SubtAIpal] Cleaned up tick interval");
+  if (_fadeTimeout) clearTimeout(_fadeTimeout);
+  if (_storageListener) {
+    chrome.storage.onChanged.removeListener(_storageListener);
+  }
+  if (_keydownListener) {
+    document.removeEventListener("keydown", _keydownListener);
+  }
+  console.log("[SubtAIpal] Cleaned up interval, timers, and event listeners");
 });

@@ -10,6 +10,16 @@
   bottom: 24px;
   right: 24px;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  transition: opacity 0.4s ease;
+}
+
+/* Faded state after inactivity */
+#cinechat-root.faded {
+  opacity: 0.25;
+}
+
+#cinechat-root.faded:hover {
+  opacity: 1;
 }
 
 /* dark by default - neutral gradient */
@@ -93,6 +103,13 @@
   --chip-hover: #a5f3fc;
 }
 
+/* FAB container - holds toggle button and drag handle */
+#cinechat-fab-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* FAB toggle button */
 #cinechat-toggle {
   all: unset;
@@ -100,20 +117,64 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px; height: 40px;
+  width: 48px; height: 48px;
   border-radius: 999px;
   background: var(--accent);
   color: var(--accent-contrast);
   font-weight: 700;
-  font-size: 18px;
+  font-size: 20px;
   box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+#cinechat-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 18px 56px rgba(0,0,0,.7);
+}
+
+#cinechat-toggle:active {
+  transform: scale(0.96);
+}
+
+/* Drag handle - small hand icon for dragging */
+#cinechat-drag-handle {
+  all: unset;
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+  transition: transform 0.2s ease, background 0.2s ease;
+  border: 1px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(4px);
+}
+
+#cinechat-drag-handle:hover {
+  transform: scale(1.1);
+  background: rgba(0,0,0,0.7);
+}
+
+#cinechat-drag-handle:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+/* Hide drag handle when panel is open */
+#cinechat-root:has(#cinechat-panel.open) #cinechat-drag-handle {
+  display: none;
 }
 
 /* Floating personality selector */
 #cinechat-personalities-float {
   position: absolute;
   bottom: 0;
-  right: 56px;
+  right: 68px;
   padding: 6px 8px;
   background: linear-gradient(135deg, rgba(10,15,22,0.98) 0%, rgba(18,25,35,0.98) 100%);
   border: 2px solid var(--border);
@@ -136,7 +197,7 @@
 /* Panel */
 #cinechat-panel {
   position: absolute;
-  bottom: 58px; right: 0;
+  bottom: 68px; right: 0;
   width: 360px;
   max-width: calc(100vw - 32px);
   max-height: 70vh;
@@ -170,6 +231,34 @@
   border-radius: 6px;
   padding: 2px 6px;
   font-size: 11px;
+}
+
+/* Hide button */
+#cinechat-hide {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: rgba(255,0,0,0.1);
+  color: #ff6b6b;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255,107,107,0.3);
+}
+
+#cinechat-hide:hover {
+  background: rgba(255,0,0,0.2);
+  transform: scale(1.1);
+  border-color: rgba(255,107,107,0.6);
+}
+
+#cinechat-hide:active {
+  transform: scale(0.95);
 }
 
 /* Controls */
