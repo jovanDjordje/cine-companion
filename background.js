@@ -187,47 +187,77 @@ Context (recent subtitles):
 ${ctxLines || "(no subtitle context caught yet)"}
 `;
 
-  // For Comedy personality: Generate 2 responses for variety (Stanford sampling technique)
+  // For Comedy personality: Verbalized Sampling for creative diversity
   if (settings.personality === "comedy") {
     user += `
 
-IMPORTANT: Generate 2 different comedic responses to this question. Use this format:
+IMPORTANT: Generate 3 different comedic responses to this question, sampled from the TAILS of the probability distribution (less probable, more creative options). Use this format:
 
-RESPONSE 1:
+RESPONSE 1 (probability: X.XX):
 [Your first comedic take]
 
-RESPONSE 2:
-[Your second comedic take - different angle/joke/reference]
+RESPONSE 2 (probability: X.XX):
+[Your second comedic take - different angle]
 
-Both should match your sarcastic personality but offer different perspectives or jokes.`;
+RESPONSE 3 (probability: X.XX):
+[Your third comedic take - completely different approach]
+
+CRITICAL REQUIREMENTS:
+- Each response must be DISTINCT in tone, reference, or comedic approach
+- Sample from low-probability options (aim for probability < 0.10)
+- Lower probability = more creative/risky/unexpected humor
+- Include a numeric probability value for each response
+- All 3 responses must match your sarcastic personality`;
   }
 
   return { header, user, isComedyVariant: settings.personality === "comedy" };
 }
 
-// Helper: Parse multi-response format and randomly select one
+// Helper: Parse multi-response format with probabilities and select using inverse weighting
 function selectRandomResponse(rawAnswer, isComedyVariant) {
   if (!isComedyVariant) return rawAnswer;
 
-  // Try to parse RESPONSE 1: and RESPONSE 2: format
-  const response1Match = rawAnswer.match(/RESPONSE 1:\s*([\s\S]*?)(?=RESPONSE 2:|$)/i);
-  const response2Match = rawAnswer.match(/RESPONSE 2:\s*([\s\S]*?)$/i);
+  // Try to parse RESPONSE N (probability: X.XX): format
+  const responsePattern = /RESPONSE (\d+) \(probability: ([\d.]+)\):\s*([\s\S]*?)(?=RESPONSE \d+|$)/gi;
+  const matches = [...rawAnswer.matchAll(responsePattern)];
 
-  if (response1Match && response2Match) {
-    const responses = [
-      response1Match[1].trim(),
-      response2Match[1].trim()
-    ];
+  if (matches.length >= 2) {
+    const responses = matches.map(m => ({
+      number: parseInt(m[1]),
+      probability: parseFloat(m[2]),
+      text: m[3].trim()
+    }));
 
-    // Randomly pick one (50/50)
-    const selectedIndex = Math.floor(Math.random() * 2);
+    console.log("[Botodachi] Verbalized Sampling: Parsed", responses.length, "responses with probabilities:",
+                responses.map(r => r.probability));
+
+    // Calculate inverse probability weights (lower probability = higher weight = more creative)
+    const weights = responses.map(r => 1 / r.probability);
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+    const normalizedWeights = weights.map(w => w / totalWeight);
+
+    // Weighted random selection
+    const random = Math.random();
+    let cumulative = 0;
+    let selectedIndex = 0;
+
+    for (let i = 0; i < normalizedWeights.length; i++) {
+      cumulative += normalizedWeights[i];
+      if (random <= cumulative) {
+        selectedIndex = i;
+        break;
+      }
+    }
+
     const selected = responses[selectedIndex];
-    console.log("[Botodachi] Comedy variant: Selected response", selectedIndex + 1);
-    return selected;
+    console.log("[Botodachi] Verbalized Sampling: Selected response", selected.number,
+                "with probability", selected.probability, "(weight:", normalizedWeights[selectedIndex].toFixed(3) + ")");
+
+    return selected.text;
   }
 
   // Fallback: If parsing fails, return original (LLM didn't follow format)
-  console.warn("[Botodachi] Comedy variant: Failed to parse 2 responses, returning full text");
+  console.warn("[Botodachi] Verbalized Sampling: Failed to parse responses with probabilities, returning full text");
   return rawAnswer;
 }
 
