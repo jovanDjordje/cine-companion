@@ -191,23 +191,20 @@ ${ctxLines || "(no subtitle context caught yet)"}
   if (settings.personality === "comedy") {
     user += `
 
-IMPORTANT: Generate 3 different comedic responses to this question, sampled from the TAILS of the probability distribution (less probable, more creative options). Use this format:
+IMPORTANT: Generate 2 different comedic responses to this question, sampled from the TAILS of the probability distribution (less probable, more creative options). Use this format:
 
 RESPONSE 1 (probability: X.XX):
 [Your first comedic take]
 
 RESPONSE 2 (probability: X.XX):
-[Your second comedic take - different angle]
-
-RESPONSE 3 (probability: X.XX):
-[Your third comedic take - completely different approach]
+[Your second comedic take - different angle/approach]
 
 CRITICAL REQUIREMENTS:
 - Each response must be DISTINCT in tone, reference, or comedic approach
 - Sample from low-probability options (aim for probability < 0.10)
 - Lower probability = more creative/risky/unexpected humor
 - Include a numeric probability value for each response
-- All 3 responses must match your sarcastic personality`;
+- Both responses must match your sarcastic personality`;
   }
 
   return { header, user, isComedyVariant: settings.personality === "comedy" };

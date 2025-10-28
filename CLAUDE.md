@@ -92,7 +92,7 @@ if (!allowSpoilers) context = context.filter((c) => c.t0 <= now + 10);
 - Sorted chronologically, oldest entries trimmed first
 - **Navigation detection**: Buffer auto-clears when URL changes (different video)
 
-**LLM Prompt Structure** (background.js:18-57)
+**LLM Prompt Structure** (background.js:125-214)
 - System message: Includes video title and platform, instructs model to use both subtitle context AND general knowledge
 - User message includes:
   - User's question
@@ -103,6 +103,15 @@ if (!allowSpoilers) context = context.filter((c) => c.t0 <= now + 10);
 - Temperature: 0.2 (deterministic responses)
 - Default max_tokens: 400
 - **AI can now use general knowledge** about the specific video/movie title
+
+**Verbalized Sampling for Comedy** (background.js:190-262)
+- Special prompt modification for Comedian personality
+- Asks model to generate 2 responses with probability values from tail distribution (p < 0.10)
+- Format: `RESPONSE N (probability: X.XX):`
+- `selectRandomResponse()` parses probabilities and uses inverse weighting
+- Lower probability responses = more creative = higher selection chance
+- Optimized to 2 responses for better performance while maintaining creativity boost
+- Example output in console: `[Botodachi] Verbalized Sampling: Selected response 2 with probability 0.05 (weight: 0.615)`
 
 **Message Passing Protocol** (content.js:316-327, background.js:77-94)
 ```javascript
@@ -172,7 +181,27 @@ When making changes, verify:
 - Quick action buttons: Recap, Trivia, Comments (YouTube only)
 - Personality-based gradient backgrounds that change on selection
 
-### Phase 3 - Chat Interface (LATEST)
+### Phase 4 - Verbalized Sampling (LATEST)
+**✅ Completed:**
+- Implemented Verbalized Sampling for Comedian personality to unlock more creative responses
+- Based on Stanford research: asking for probabilities triggers pre-training distribution (not aligned/collapsed)
+- Generates 2 responses with explicit probability values from model
+- Uses **inverse probability weighting** for selection: lower probability = higher selection chance
+- Results in more diverse, less repetitive, and more creative comedic responses
+- **Optimized to 2 responses**: Balances creativity boost with performance (3 responses was too slow)
+
+**How it works:**
+1. Prompt asks model to "sample from TAILS of probability distribution" (p < 0.10)
+2. Model generates 2 responses in format: `RESPONSE N (probability: X.XX):`
+3. Parser extracts text + probability from each response
+4. Selection uses weighted random: `weight = 1/probability` (more creative = higher chance)
+5. Example: probabilities [0.08, 0.05] → lowest gets ~1.6× more selection weight than highest
+
+**Key files updated:**
+- background.js: New prompt format (lines 190-211), rewritten `selectRandomResponse()` with inverse weighting (lines 216-262)
+- Console logs show parsed probabilities and selection weights for debugging
+
+### Phase 3 - Chat Interface
 **✅ Completed:**
 - Chat bubble UI replacing single answer area
 - Conversation history tracking (last 10 Q&A pairs)
@@ -223,6 +252,7 @@ Key functions by location:
 - Video metadata extraction: content.js:40-71
 - Navigation detection: content.js:338-346
 - UI creation: content.js:183-297
-- LLM communication: background.js:18-74, content.js:300-334
-- Settings management: options.js:1-40, background.js:3-15
+- LLM communication: background.js:125-214, content.js:300-334
+- Verbalized Sampling (Comedy): background.js:190-262 (prompt + selection logic)
+- Settings management: options.js:1-40, background.js:3-18
 - Drag functionality: content.js:365-407
