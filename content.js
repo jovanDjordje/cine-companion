@@ -1,5 +1,5 @@
 // ==============================
-// SubtAIpal - content.js
+// Botodachi - content.js
 // ==============================
 
 // ---- Config / state ----
@@ -31,7 +31,7 @@ let _rootElement = null;
 _storageListener = (changes, area) => {
   if (area === "local" && changes.personality) {
     _cachedPersonality = changes.personality.newValue;
-    console.log("[SubtAIpal] Personality changed to:", _cachedPersonality);
+    console.log("[Botodachi] Personality changed to:", _cachedPersonality);
   }
 };
 chrome.storage.onChanged.addListener(_storageListener);
@@ -104,7 +104,7 @@ function scrapeYouTubeComments() {
     }
   }
 
-  console.log(`[SubtAIpal] Scraped ${comments.length} YouTube comments`);
+  console.log(`[Botodachi] Scraped ${comments.length} YouTube comments`);
   return comments.length > 0 ? comments : null;
 }
 
@@ -130,7 +130,7 @@ function getVideoMetadata() {
     if (titleEl) {
       title = titleEl.getAttribute?.("content") || titleEl.textContent?.trim() || title;
     }
-    console.log("[SubtAIpal] YouTube title detected:", title);
+    console.log("[Botodachi] YouTube title detected:", title);
   } else if (host.includes("netflix.com")) {
     // Try multiple Netflix title selectors (updated for 2024+ Netflix)
     const titleEl =
@@ -154,8 +154,8 @@ function getVideoMetadata() {
       }
     }
 
-    console.log("[SubtAIpal] Netflix title detected:", title);
-    console.log("[SubtAIpal] Tried selectors - found element:", !!titleEl);
+    console.log("[Botodachi] Netflix title detected:", title);
+    console.log("[Botodachi] Tried selectors - found element:", !!titleEl);
   }
 
   // Cache the title if it's a good one (not ID-based or unknown)
@@ -195,7 +195,7 @@ function readYouTubeCaptions(now) {
   const text = texts.join(" ").trim();
   if (text) {
     addCue(now - 1.0, now + 0.2, text);
-    // console.log("[SubtAIpal] Captions(textTracks):", text);
+    // console.log("[Botodachi] Captions(textTracks):", text);
   }
 }
 
@@ -214,7 +214,7 @@ function readYouTubeCaptionsDOM(now) {
     .trim();
   if (!text) return;
   addCue(now - 1.0, now + 0.2, text);
-  // console.log("[SubtAIpal] Captions(DOM):", text);
+  // console.log("[Botodachi] Captions(DOM):", text);
 }
 
 // ---- Netflix: DOM capture ----
@@ -247,7 +247,7 @@ function readNetflixCaptions(now) {
   text = text.replace(/\s+/g, " ").trim();
   if (text) {
     addCue(now - 1.0, now + 0.2, text);
-    // console.log("[SubtAIpal] NF captions:", text);
+    // console.log("[Botodachi] NF captions:", text);
   }
 }
 
@@ -360,13 +360,13 @@ function ensureOverlay() {
   _rootElement = root; // Store reference for fade functionality
   root.innerHTML = `
     <div id="cinechat-fab-container">
-      <button id="cinechat-toggle">💬</button>
-      <button id="cinechat-drag-handle" title="Drag to move">✋</button>
+      <button id="cinechat-toggle">🤖</button>
+      <button id="cinechat-drag-handle" title="Drag to move">⋮⋮</button>
     </div>
     <div id="cinechat-panel">
       <div id="cinechat-header">
         <div style="flex:1;">
-          <div>SubtAIpal</div>
+          <div>Botodachi</div>
           <div id="cinechat-video-title" style="font-size:11px; color:#999; margin-top:2px;">Loading...</div>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
@@ -394,7 +394,7 @@ function ensureOverlay() {
           <button class="cinechat-chip" id="cinechat-clear" style="opacity:0.6;">🗑️ Clear</button>
         </div>
         <div id="cinechat-input-row">
-          <textarea id="cinechat-q" placeholder="Ask anything..."></textarea>
+          <textarea id="cinechat-q" placeholder="Ask anything... (Ctrl+Enter to send)"></textarea>
           <button id="cinechat-ask">Ask</button>
         </div>
         <div id="cinechat-char-counter">
@@ -438,22 +438,23 @@ function ensureOverlay() {
   makeDraggable(root, header);
   makeDraggable(root, dragHandle);
 
-  // Enter key to send (Shift+Enter for new line) - MUST BE FIRST
+  // Ctrl+Enter to send (Enter for new line)
   q.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && e.ctrlKey) {
       e.preventDefault(); // Prevent new line
       e.stopPropagation(); // Stop Netflix/YouTube from seeing it
       const question = q.value.trim();
       if (question) {
         askLLM(question);
         q.value = ""; // Clear input
+        // Update character counter
+        const charCountEl = root.querySelector("#cinechat-char-count");
+        if (charCountEl) charCountEl.textContent = "0";
       }
     }
-    // If Shift+Enter, allow default behavior (new line) but still block from platform
-    else {
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-    }
+    // Always block from platform
+    e.stopPropagation();
+    e.stopImmediatePropagation();
   }, true); // capture phase
 
   // Prevent YouTube/Netflix keyboard shortcuts while typing
@@ -465,14 +466,22 @@ function ensureOverlay() {
     // DON'T preventDefault - we want normal typing to work!
   };
 
-  // Block on other key events
+  // Block on other key events for textarea
   q.addEventListener("keyup", blockKeys, true);
   q.addEventListener("keypress", blockKeys, true);
 
-  // Also block on entire panel to catch all inputs (checkboxes, buttons, etc.)
-  panel.addEventListener("keydown", blockKeys, true);
-  panel.addEventListener("keyup", blockKeys, true);
-  panel.addEventListener("keypress", blockKeys, true);
+  // Block on entire panel EXCEPT for the input textarea (don't interfere with Enter key)
+  const blockPanelKeys = (e) => {
+    // Don't block if event is from the textarea (let Enter key handler work)
+    if (e.target === q) return;
+
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  };
+
+  panel.addEventListener("keydown", blockPanelKeys, true);
+  panel.addEventListener("keyup", blockPanelKeys, true);
+  panel.addEventListener("keypress", blockPanelKeys, true);
 
   // Restore spoiler toggle from content-script state
   spoil.checked = allowSpoilers;
@@ -577,7 +586,7 @@ function ensureOverlay() {
 
   // Hide extension button - completely hides until page refresh
   btnHide.addEventListener("click", () => {
-    if (confirm("Hide SubtAIpal? It will reappear when you refresh the page.")) {
+    if (confirm("Hide Botodachi? It will reappear when you refresh the page.")) {
       root.style.display = "none";
       // Clean up timers
       if (_fadeTimeout) clearTimeout(_fadeTimeout);
@@ -682,7 +691,7 @@ function ensureOverlay() {
         // Double-check panel is still open before restoring
         if (panel.classList.contains("open")) {
           q.focus();
-          console.log("[SubtAIpal] Auto-restored focus (Netflix controls likely hid)");
+          console.log("[Botodachi] Auto-restored focus (Netflix controls likely hid)");
         }
       }, FOCUS_RESTORE_DELAY_MS);
     }
@@ -936,7 +945,7 @@ function tick() {
   // Detect navigation to NEW VIDEO (ignore hash/timestamp changes)
   const currentVideoId = getVideoId(location.href);
   if (currentVideoId !== _lastVideoId && _lastVideoId !== null) {
-    console.log("[SubtAIpal] New video detected - clearing buffer, title cache, and chat history");
+    console.log("[Botodachi] New video detected - clearing buffer, title cache, and chat history");
     buffer.length = 0; // Clear buffer
     _lastAdded = "";    // Reset deduplication tracker
     _cachedTitle = null; // Clear cached title for new video
@@ -1062,5 +1071,5 @@ window.addEventListener("unload", () => {
   if (_keydownListener) {
     document.removeEventListener("keydown", _keydownListener);
   }
-  console.log("[SubtAIpal] Cleaned up interval, timers, and event listeners");
+  console.log("[Botodachi] Cleaned up interval, timers, and event listeners");
 });

@@ -222,12 +222,12 @@ function selectRandomResponse(rawAnswer, isComedyVariant) {
     // Randomly pick one (50/50)
     const selectedIndex = Math.floor(Math.random() * 2);
     const selected = responses[selectedIndex];
-    console.log("[SubtAIpal] Comedy variant: Selected response", selectedIndex + 1);
+    console.log("[Botodachi] Comedy variant: Selected response", selectedIndex + 1);
     return selected;
   }
 
   // Fallback: If parsing fails, return original (LLM didn't follow format)
-  console.warn("[SubtAIpal] Comedy variant: Failed to parse 2 responses, returning full text");
+  console.warn("[Botodachi] Comedy variant: Failed to parse 2 responses, returning full text");
   return rawAnswer;
 }
 

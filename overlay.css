@@ -1,5 +1,5 @@
 /* ============================
-   SubtAIpal - overlay.css
+   Botodachi - overlay.css
    ============================ */
 
 /* Root & Theme */
@@ -15,7 +15,7 @@
 
 /* Faded state after inactivity */
 #cinechat-root.faded {
-  opacity: 0.25;
+  opacity: 0.125;
 }
 
 #cinechat-root.faded:hover {
@@ -105,9 +105,12 @@
 
 /* FAB container - holds toggle button and drag handle */
 #cinechat-fab-container {
+  position: absolute;
+  bottom: 1px;
+  right: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* FAB toggle button */
@@ -117,12 +120,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px; height: 48px;
+  width: 32px; height: 32px;
   border-radius: 999px;
   background: var(--accent);
   color: var(--accent-contrast);
   font-weight: 700;
-  font-size: 20px;
+  font-size: 16px;
   box-shadow: var(--shadow);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border: 2px solid rgba(255,255,255,0.2);
@@ -173,8 +176,8 @@
 /* Floating personality selector */
 #cinechat-personalities-float {
   position: absolute;
-  bottom: 0;
-  right: 68px;
+  bottom: 1px;
+  right: 44px;
   padding: 6px 8px;
   background: linear-gradient(135deg, rgba(10,15,22,0.98) 0%, rgba(18,25,35,0.98) 100%);
   border: 2px solid var(--border);
@@ -197,7 +200,7 @@
 /* Panel */
 #cinechat-panel {
   position: absolute;
-  bottom: 68px; right: 0;
+  bottom: 56px; right: 0;
   width: 360px;
   max-width: calc(100vw - 32px);
   max-height: 70vh;
@@ -219,7 +222,7 @@
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--panel-fg);
   cursor: move;
   user-select: none;
@@ -230,7 +233,7 @@
   color: var(--kbd-fg);
   border-radius: 6px;
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* Hide button */
@@ -267,7 +270,7 @@
   margin-bottom: 6px;
 }
 #cinechat-row label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--panel-fg);
   opacity: 0.85;
 }
@@ -316,7 +319,7 @@
   outline: none;
   overflow: auto;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 14px;
 }
 #cinechat-q:focus {
   border-color: var(--accent);
@@ -360,7 +363,7 @@
 /* Preview box */
 #cinechat-preview {
   margin-top: 8px;
-  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: #cfe9cf;
   background: rgba(20,40,20,.45);
   border: 1px solid #2a3f2a;
@@ -386,7 +389,7 @@
   border-radius: 999px;
   background: var(--chip);
   color: var(--panel-fg);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 .cinechat-chip:hover { background: var(--chip-hover); }
@@ -466,7 +469,7 @@
 #cinechat-chat-container:empty::before {
   content: "No messages yet. Ask a question!";
   color: var(--panel-fg);
-  font-size: 13px;
+  font-size: 14px;
   opacity: 0.5;
 }
 
@@ -492,8 +495,8 @@
 .chat-bubble {
   padding: 8px 12px;
   border-radius: 12px;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.5;
   max-width: 85%;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

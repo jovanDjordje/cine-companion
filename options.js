@@ -75,7 +75,23 @@ function save() {
   );
 }
 
+function clearApiKey() {
+  if (confirm("Are you sure you want to clear your API key? This cannot be undone.")) {
+    document.getElementById("apiKey").value = "";
+    chrome.storage.local.set({ apiKey: "" }, () => {
+      const s = document.querySelector("#status small");
+      s.textContent = "API key cleared.";
+      s.style.color = "#dc2626";
+      setTimeout(() => {
+        s.textContent = "";
+        s.style.color = "";
+      }, 2000);
+    });
+  }
+}
+
 document.getElementById("save").addEventListener("click", save);
+document.getElementById("clearKey").addEventListener("click", clearApiKey);
 document.getElementById("personality").addEventListener("change", (e) => {
   toggleCustomPersonalitySection(e.target.value);
 });
