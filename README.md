@@ -8,7 +8,7 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 
 ## ✨ Features
 
-### 🎭 5 Distinct AI Personalities
+### 🎭 4 AI Personalities + Custom
 - **YouTube**: Internet-savvy companion for music videos and creators
 - **Movie Buff**: Film school graduate who can't stop analyzing cinematography
 - **Comedy**: Sarcastic MST3K-style commentary that roasts plot holes
@@ -21,7 +21,7 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 - Smart spoiler protection - only reveals what you've already seen
 
 ### 🚀 Quick Actions
-- **📖 Recap**: Get a quick summary of recent events
+- **❓ What's happening?**: Instant explanation of the current scene
 - **🎲 Trivia**: Fun facts about the movie/show/video
 - **💬 Comments** (YouTube only): AI summarizes top comments
 
@@ -30,6 +30,7 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 - Auto-fades after inactivity (stays out of your way)
 - Dark/light mode support
 - Chat interface with conversation history
+- Buffer status indicator (shows minutes of captions captured)
 
 ### 🔌 Flexible AI Providers
 - **OpenAI** (GPT-4o-mini, GPT-4, etc.)
@@ -85,18 +86,56 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 ### Option 2: Ollama (Local)
 **Best for**: Maximum privacy, offline use
 
-1. Install Ollama: https://ollama.com
-2. Pull a model:
-   ```bash
-   ollama pull llama3.2
+1. **Install Ollama**: https://ollama.com
+
+2. **Configure CORS** (Required for browser extensions):
+
+   **Windows:**
+   ```cmd
+   setx OLLAMA_ORIGINS "chrome-extension://*"
    ```
-3. In extension options:
+   Then **stop Ollama completely** (right-click system tray icon → Quit) and **restart it**.
+
+   *Important:* Just closing the window isn't enough - you must fully quit from system tray.
+
+   **macOS/Linux:**
+   ```bash
+   # Add to ~/.zshrc or ~/.bashrc
+   export OLLAMA_ORIGINS="chrome-extension://*"
+   ```
+   Then restart terminal and run: `ollama serve`
+
+   **Alternative (less secure, but works):**
+   ```bash
+   # Allow all origins (development only)
+   export OLLAMA_ORIGINS="*"
+   ```
+
+3. **Pull a model** (choose based on your hardware):
+   ```bash
+   # Recommended: Best speed + quality balance (~25 sec responses)
+   ollama pull llama3.2:3b
+
+   # Alternative options
+   ollama pull qwen2.5:3b       # Also fast (~30 sec responses)
+   ollama pull phi3.5           # Good quality
+   ollama pull qwen2.5:7b       # Better quality, slower (requires 16GB+ RAM)
+   ```
+
+4. **In extension options**:
    - Provider: `Ollama (Local)`
    - API Base: `http://localhost:11434`
-   - Model: `llama3.2`
+   - Model: `llama3.2` (or whatever you pulled)
    - API Key: (leave empty)
 
+5. **Verify it's running**:
+   - Open terminal: `ollama list` (should show your models)
+   - Or visit: http://localhost:11434 (should see "Ollama is running")
+
 **Cost**: Free! Runs on your computer.
+**Note**: Requires 8GB+ RAM for decent performance.
+
+**Performance Optimization**: The extension automatically sends less context to Ollama (last ~60 captions instead of 300) for faster responses. Expect **20-30 second response times** with small models like llama3.2:3b. Comment summarization takes longer (~40 sec) due to extra context.
 
 ### Option 3: OpenAI
 **Best for**: Highest quality responses (paid)
@@ -272,9 +311,34 @@ Edit `overlay.css` custom properties:
 - Verify API key is saved correctly
 - For Ollama: Make sure server is running (`ollama serve`)
 
+### Ollama CORS errors
+**Symptoms:** "Failed to fetch" or "CORS policy" errors
+
+**Solution:**
+1. Set OLLAMA_ORIGINS environment variable:
+   - **Windows**:
+     ```cmd
+     setx OLLAMA_ORIGINS "chrome-extension://*"
+     ```
+     Then **quit Ollama completely** (right-click system tray → Quit) and restart it
+   - **Mac/Linux**: Add `export OLLAMA_ORIGINS="chrome-extension://*"` to `~/.bashrc` or `~/.zshrc`, then restart terminal and run `ollama serve`
+2. Verify setting:
+   - Windows: `echo %OLLAMA_ORIGINS%` in new Command Prompt
+   - Mac/Linux: `echo $OLLAMA_ORIGINS`
+3. Test: Visit http://localhost:11434 (should show "Ollama is running")
+
+**Quick fix for testing:** Set `OLLAMA_ORIGINS="*"` (less secure, allows all origins)
+
 ### Slow responses
 - **OpenAI/Google**: Check your internet connection
-- **Ollama**: Large models need more RAM (try `qwen2.5:3b` for faster responses)
+- **Ollama**:
+  - Local models are slower than cloud APIs (**20-30 seconds is normal**)
+  - Extension auto-optimizes for Ollama (sends less context)
+  - **Recommended model**: `llama3.2:3b` (~25 sec responses)
+  - **Comment summaries take longer** (~40 sec due to extra text)
+  - Check Task Manager: CPU should be at ~80-100% while processing
+  - Make sure laptop is plugged in (power settings affect performance)
+  - If still too slow: Switch to Google Gemini (FREE + instant responses)
 
 ### Extension not loading
 - Check `chrome://extensions/` for errors
@@ -399,11 +463,13 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📊 Stats
 
-- **Lines of Code**: ~2000
+- **Lines of Code**: ~2,300 (across 6 files)
 - **Dependencies**: 0 (vanilla JS)
 - **Build Time**: 0 seconds (no build process)
 - **Extension Size**: ~50KB
-- **Supported Sites**: YouTube, Netflix (more coming)
+- **Supported Sites**: YouTube, Netflix
+- **AI Personalities**: 4 built-in + custom
+- **AI Providers**: OpenAI, Google Gemini, Ollama
 
 ---
 

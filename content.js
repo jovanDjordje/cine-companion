@@ -367,7 +367,10 @@ function ensureOverlay() {
       <div id="cinechat-header">
         <div style="flex:1;">
           <div>Botodachi</div>
-          <div id="cinechat-video-title" style="font-size:11px; color:#999; margin-top:2px;">Loading...</div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div id="cinechat-video-title" style="font-size:11px; color:#999;">Loading...</div>
+            <div id="cinechat-buffer-status" style="font-size:10px; color:#999; opacity:0.7;" title="Captured caption duration"></div>
+          </div>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
           <div id="cinechat-small"><kbd>Alt+C</kbd> to toggle</div>
@@ -388,7 +391,7 @@ function ensureOverlay() {
 
       <div id="cinechat-input-area">
         <div id="cinechat-quick">
-          <button class="cinechat-chip" id="cinechat-q-recap">📖 Recap</button>
+          <button class="cinechat-chip" id="cinechat-q-whats-happening">❓ What's happening?</button>
           <button class="cinechat-chip" id="cinechat-q-trivia">🎲 Trivia</button>
           <button class="cinechat-chip" id="cinechat-q-comments" style="display:none;">💬 Sum Comments</button>
           <button class="cinechat-chip" id="cinechat-clear" style="opacity:0.6;">🗑️ Clear</button>
@@ -701,7 +704,7 @@ function ensureOverlay() {
   showBuf.addEventListener("change", renderPreview);
 
   // prefab chips
-  const btnRecap = root.querySelector("#cinechat-q-recap");
+  const btnWhatsHappening = root.querySelector("#cinechat-q-whats-happening");
   const btnTrivia = root.querySelector("#cinechat-q-trivia");
   const btnComments = root.querySelector("#cinechat-q-comments");
 
@@ -711,8 +714,8 @@ function ensureOverlay() {
     btnComments.style.display = "inline-block";
   }
 
-  btnRecap.addEventListener("click", () => {
-    askLLM("Give a concise recap (3–5 sentences) of what's happened in the last few minutes.", "📖 Recap", true); // Skip validation
+  btnWhatsHappening.addEventListener("click", () => {
+    askLLM("What's happening right now in this scene? Explain briefly.", "❓ What's happening?", true);
   });
 
   btnTrivia.addEventListener("click", () => {
@@ -984,10 +987,13 @@ function tick() {
 
 // ---- Update header with current video title ----
 let _titleElement = null;
+let _bufferStatusElement = null;
 let _lastDisplayedTitle = null;
+let _lastDisplayedBuffer = null;
 
 function updateHeaderTitle() {
   if (!_titleElement) _titleElement = document.getElementById("cinechat-video-title");
+  if (!_bufferStatusElement) _bufferStatusElement = document.getElementById("cinechat-buffer-status");
   if (!_titleElement) return;
 
   const metadata = getVideoMetadata();
@@ -1007,6 +1013,25 @@ function updateHeaderTitle() {
   if (displayTitle !== _lastDisplayedTitle) {
     _titleElement.textContent = displayTitle;
     _lastDisplayedTitle = displayTitle;
+  }
+
+  // Update buffer status indicator
+  if (_bufferStatusElement && buffer.length > 0) {
+    const oldestTime = buffer[0].t0;
+    const newestTime = buffer[buffer.length - 1].t1;
+    const durationMinutes = Math.floor((newestTime - oldestTime) / 60);
+    const displayBuffer = durationMinutes > 0 ? `📊 ${durationMinutes} min` : "📊 <1 min";
+
+    if (displayBuffer !== _lastDisplayedBuffer) {
+      _bufferStatusElement.textContent = displayBuffer;
+      _lastDisplayedBuffer = displayBuffer;
+    }
+  } else if (_bufferStatusElement && buffer.length === 0) {
+    // Clear buffer status when empty
+    if (_lastDisplayedBuffer !== "") {
+      _bufferStatusElement.textContent = "";
+      _lastDisplayedBuffer = "";
+    }
   }
 }
 function makeDraggable(container, handle) {

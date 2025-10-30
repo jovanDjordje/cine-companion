@@ -306,9 +306,9 @@
 
 #cinechat-q {
   flex: 1;
-  height: 40px;
-  min-height: 40px;
-  max-height: 80px;
+  height: 56px;
+  min-height: 56px;
+  max-height: 100px;
   resize: vertical;
   background: rgba(0, 0, 0, 0.3);
   color: var(--panel-fg);
@@ -353,7 +353,7 @@
   text-align: center;
   white-space: nowrap;
   flex-shrink: 0;
-  height: 40px;
+  height: 56px;
   box-sizing: border-box;
 }
 #cinechat-ask:hover {
