@@ -467,7 +467,7 @@
 }
 
 #cinechat-chat-container:empty::before {
-  content: "No messages yet. Ask a question!";
+  content: "No messages yet. Turn on subtitles and ask a question!";
   color: var(--panel-fg);
   font-size: 14px;
   opacity: 0.5;

@@ -24,5 +24,11 @@
       "css": ["overlay.css"],
       "run_at": "document_idle"
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["robo.png"],
+      "matches": ["*://*.youtube.com/*", "*://*.netflix.com/*"]
+    }
   ]
 }

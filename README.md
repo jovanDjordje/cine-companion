@@ -17,7 +17,7 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 
 ### 💬 Real-Time Context
 - Captures subtitles from YouTube and Netflix automatically
-- Maintains 2-hour rolling buffer (enough for full movies)
+- Maintains 30-minute rolling buffer (recent context for better answers)
 - Smart spoiler protection - only reveals what you've already seen
 
 ### 🚀 Quick Actions
@@ -31,6 +31,7 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 - Dark/light mode support
 - Chat interface with conversation history
 - Buffer status indicator (shows minutes of captions captured)
+- Subtitle reminder (warns if captions aren't enabled)
 
 ### 🔌 Flexible AI Providers
 - **OpenAI** (GPT-4o-mini, GPT-4, etc.)
@@ -302,9 +303,12 @@ Edit `overlay.css` custom properties:
 ## 🐛 Troubleshooting
 
 ### Captions not working
-- **YouTube**: Enable closed captions (CC button)
-- **Netflix**: Turn on subtitles in player settings
-- Check console for errors (F12 → Console)
+- **Look for the warning**: After 5 seconds of playback, you'll see "⚠️ Enable subtitles/captions" if none are detected
+- **YouTube**: Click the CC button in the video player
+- **Netflix**: Turn on subtitles in player settings (speech bubble icon)
+- Wait 5-10 seconds after enabling for captions to start appearing
+- Check the buffer indicator (📊 X min) - it should populate once captions are captured
+- Check console for errors (F12 → Console) if still not working
 
 ### "Missing API key" error
 - Open extension options

@@ -85,7 +85,7 @@ if (!allowSpoilers) context = context.filter((c) => c.t0 <= now + 10);
 ```
 
 **Caption Buffer** (content.js:6-30)
-- Stores last 7200 seconds (2 hours) of captions - enough for full movies
+- Stores last 1800 seconds (30 minutes) of captions - matches context sent to AI
 - Format: `{ t0: startTime, t1: endTime, text: string }`
 - Automatic deduplication via `_lastAdded` tracker
 - Soft merging of contiguous captions (within 1 second)
@@ -227,7 +227,7 @@ When making changes, verify:
 
 ### MVP 1.1 - Core Improvements
 **✅ Completed:**
-- Buffer capacity increased from 10 minutes to 2 hours (full movie support)
+- Buffer capacity optimized to 30 minutes (matches context sent to AI)
 - Video metadata extraction (title, URL) for enhanced AI context
 - AI can now use general knowledge about specific videos/movies
 - Switched to `chrome.storage.local` for better API key security
@@ -238,7 +238,7 @@ When making changes, verify:
 
 - Caption capture depends on platform-specific DOM structure (may break with site updates)
 - No offline mode (requires API connection)
-- Buffer limited to 2 hours (older content is trimmed)
+- Buffer limited to 30 minutes (older content is trimmed, matches AI context window)
 - No support for multiple simultaneous videos on same page
 - Polling-based caption detection (300ms interval) may miss rapid-fire subtitles
 - No persistence of chat history between page refreshes

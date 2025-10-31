@@ -3,7 +3,7 @@
 // ==============================
 
 // ---- Config / state ----
-const CAP_BUFFER_SECS = 7200; // keep last 2 hours (full movies)
+const CAP_BUFFER_SECS = 1800; // keep last 30 minutes (matches context sent to cloud APIs)
 const TICK_INTERVAL_MS = 300; // Caption polling interval
 const MAX_QUESTION_LENGTH = 500; // Character limit for questions
 const FOCUS_RESTORE_DELAY_MS = 100; // Delay before restoring focus after Netflix steals it
@@ -115,7 +115,11 @@ function getVideoMetadata() {
   const url = location.href;
 
   // Return cached title if we have a good one (not "Unknown Video" or ID-based)
-  if (_cachedTitle && !_cachedTitle.includes("Netflix Video ID:") && _cachedTitle !== "Unknown Video") {
+  if (
+    _cachedTitle &&
+    !_cachedTitle.includes("Netflix Video ID:") &&
+    _cachedTitle !== "Unknown Video"
+  ) {
     return { title: _cachedTitle, url, platform: host };
   }
 
@@ -128,7 +132,10 @@ function getVideoMetadata() {
       document.querySelector('meta[property="og:title"]');
 
     if (titleEl) {
-      title = titleEl.getAttribute?.("content") || titleEl.textContent?.trim() || title;
+      title =
+        titleEl.getAttribute?.("content") ||
+        titleEl.textContent?.trim() ||
+        title;
     }
     console.log("[Botodachi] YouTube title detected:", title);
   } else if (host.includes("netflix.com")) {
@@ -143,7 +150,10 @@ function getVideoMetadata() {
       document.querySelector("h4.ellipsis-text");
 
     if (titleEl) {
-      title = titleEl.getAttribute?.("content") || titleEl.textContent?.trim() || title;
+      title =
+        titleEl.getAttribute?.("content") ||
+        titleEl.textContent?.trim() ||
+        title;
     }
 
     // Fallback: try to extract from URL pattern (only if nothing else worked)
@@ -259,7 +269,7 @@ function getPersonalityIcon(personality) {
     comedy: "😂",
     vulcan: "🖖",
     youtube: "▶️",
-    custom: "✏️"
+    custom: "✏️",
   };
   return icons[personality] || "🎬";
 }
@@ -268,7 +278,7 @@ function getPersonalityIcon(personality) {
 function parseMarkdown(text) {
   // First, escape any HTML to prevent XSS
   const escapeHTML = (str) => {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
   };
@@ -278,14 +288,14 @@ function parseMarkdown(text) {
   // Convert markdown to HTML (safe because we escaped HTML first)
 
   // Bold: **text** → <strong>text</strong> (process first to avoid conflicts)
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
   // Italic: *text* → <em>text</em> (only if not followed/preceded by another *)
   // Note: Process after bold to avoid conflicts with **
-  html = html.replace(/([^*]|^)\*([^*]+?)\*([^*]|$)/g, '$1<em>$2</em>$3');
+  html = html.replace(/([^*]|^)\*([^*]+?)\*([^*]|$)/g, "$1<em>$2</em>$3");
 
   // Bullet lists: convert lines starting with * or - to <li>
-  const lines = html.split('\n');
+  const lines = html.split("\n");
   let inList = false;
   const processedLines = [];
 
@@ -298,11 +308,11 @@ function parseMarkdown(text) {
         inList = true;
       }
       // Remove the bullet marker and wrap in <li>
-      const content = trimmed.replace(/^[\*\-]\s+/, '');
+      const content = trimmed.replace(/^[\*\-]\s+/, "");
       processedLines.push(`<li style="margin: 4px 0;">${content}</li>`);
     } else {
       if (inList) {
-        processedLines.push('</ul>');
+        processedLines.push("</ul>");
         inList = false;
       }
       processedLines.push(line);
@@ -310,14 +320,14 @@ function parseMarkdown(text) {
   }
 
   if (inList) {
-    processedLines.push('</ul>');
+    processedLines.push("</ul>");
   }
 
-  html = processedLines.join('\n');
+  html = processedLines.join("\n");
 
   // Preserve line breaks (convert double newlines to <br><br>)
-  html = html.replace(/\n\n/g, '<br><br>');
-  html = html.replace(/\n/g, '<br>');
+  html = html.replace(/\n\n/g, "<br><br>");
+  html = html.replace(/\n/g, "<br>");
 
   return html;
 }
@@ -328,8 +338,10 @@ let _previewShowBuf = null;
 let _previewElement = null;
 
 function renderPreview() {
-  if (!_previewShowBuf) _previewShowBuf = document.getElementById("cinechat-showbuf");
-  if (!_previewElement) _previewElement = document.getElementById("cinechat-preview");
+  if (!_previewShowBuf)
+    _previewShowBuf = document.getElementById("cinechat-showbuf");
+  if (!_previewElement)
+    _previewElement = document.getElementById("cinechat-preview");
   if (!_previewShowBuf || !_previewElement) return;
 
   if (!_previewShowBuf.checked) {
@@ -371,6 +383,7 @@ function ensureOverlay() {
             <div id="cinechat-video-title" style="font-size:11px; color:#999;">Loading...</div>
             <div id="cinechat-buffer-status" style="font-size:10px; color:#999; opacity:0.7;" title="Captured caption duration"></div>
           </div>
+          <div id="cinechat-subtitle-warning" style="display:none; font-size:11px; color:#ffa726; margin-top:4px;">⚠️ Enable subtitles/captions to start capturing</div>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
           <div id="cinechat-small"><kbd>Alt+C</kbd> to toggle</div>
@@ -442,23 +455,27 @@ function ensureOverlay() {
   makeDraggable(root, dragHandle);
 
   // Ctrl+Enter to send (Enter for new line)
-  q.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && e.ctrlKey) {
-      e.preventDefault(); // Prevent new line
-      e.stopPropagation(); // Stop Netflix/YouTube from seeing it
-      const question = q.value.trim();
-      if (question) {
-        askLLM(question);
-        q.value = ""; // Clear input
-        // Update character counter
-        const charCountEl = root.querySelector("#cinechat-char-count");
-        if (charCountEl) charCountEl.textContent = "0";
+  q.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key === "Enter" && e.ctrlKey) {
+        e.preventDefault(); // Prevent new line
+        e.stopPropagation(); // Stop Netflix/YouTube from seeing it
+        const question = q.value.trim();
+        if (question) {
+          askLLM(question);
+          q.value = ""; // Clear input
+          // Update character counter
+          const charCountEl = root.querySelector("#cinechat-char-count");
+          if (charCountEl) charCountEl.textContent = "0";
+        }
       }
-    }
-    // Always block from platform
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-  }, true); // capture phase
+      // Always block from platform
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    },
+    true
+  ); // capture phase
 
   // Prevent YouTube/Netflix keyboard shortcuts while typing
   // Strategy: Stop propagation (so Netflix doesn't see it) but allow default typing behavior
@@ -497,7 +514,9 @@ function ensureOverlay() {
 
   // Auto-detect best default personality based on platform
   const hostname = location.hostname;
-  const defaultPersonality = hostname.includes("youtube.com") ? "youtube" : "moviebuff";
+  const defaultPersonality = hostname.includes("youtube.com")
+    ? "youtube"
+    : "moviebuff";
 
   // Load and highlight current personality (and cache it)
   chrome.storage.local.get({ personality: defaultPersonality }, (cfg) => {
@@ -539,7 +558,9 @@ function ensureOverlay() {
 
       const bubble = document.createElement("div");
       bubble.className = "chat-bubble";
-      bubble.innerHTML = parseMarkdown(`Switched to ${btn.title} personality! 🎭`);
+      bubble.innerHTML = parseMarkdown(
+        `Switched to ${btn.title} personality! 🎭`
+      );
 
       feedbackDiv.appendChild(iconDiv);
       feedbackDiv.appendChild(bubble);
@@ -589,7 +610,9 @@ function ensureOverlay() {
 
   // Hide extension button - completely hides until page refresh
   btnHide.addEventListener("click", () => {
-    if (confirm("Hide Botodachi? It will reappear when you refresh the page.")) {
+    if (
+      confirm("Hide Botodachi? It will reappear when you refresh the page.")
+    ) {
       root.style.display = "none";
       // Clean up timers
       if (_fadeTimeout) clearTimeout(_fadeTimeout);
@@ -639,11 +662,15 @@ function ensureOverlay() {
   let focusRestoreTimeout = null;
 
   // Track user interactions with input field
-  q.addEventListener("focus", (e) => {
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    lastInteractionTime = Date.now();
-  }, true);
+  q.addEventListener(
+    "focus",
+    (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      lastInteractionTime = Date.now();
+    },
+    true
+  );
 
   // Character counter update
   const charCountEl = root.querySelector("#cinechat-char-count");
@@ -666,23 +693,32 @@ function ensureOverlay() {
     }
   });
 
-  q.addEventListener("mousedown", (e) => {
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    lastInteractionTime = Date.now();
-  }, true);
+  q.addEventListener(
+    "mousedown",
+    (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      lastInteractionTime = Date.now();
+    },
+    true
+  );
 
-  q.addEventListener("click", (e) => {
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    q.focus(); // Force focus back
-    lastInteractionTime = Date.now();
-  }, true);
+  q.addEventListener(
+    "click",
+    (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      q.focus(); // Force focus back
+      lastInteractionTime = Date.now();
+    },
+    true
+  );
 
   // Auto-restore focus when Netflix steals it (on controls hide)
   q.addEventListener("blur", (e) => {
     const timeSinceInteraction = Date.now() - lastInteractionTime;
-    const wasRecentlyActive = timeSinceInteraction < RECENT_INTERACTION_WINDOW_MS;
+    const wasRecentlyActive =
+      timeSinceInteraction < RECENT_INTERACTION_WINDOW_MS;
 
     // Only restore if user was recently typing/interacting
     if (wasRecentlyActive) {
@@ -694,7 +730,9 @@ function ensureOverlay() {
         // Double-check panel is still open before restoring
         if (panel.classList.contains("open")) {
           q.focus();
-          console.log("[Botodachi] Auto-restored focus (Netflix controls likely hid)");
+          console.log(
+            "[Botodachi] Auto-restored focus (Netflix controls likely hid)"
+          );
         }
       }, FOCUS_RESTORE_DELAY_MS);
     }
@@ -715,11 +753,19 @@ function ensureOverlay() {
   }
 
   btnWhatsHappening.addEventListener("click", () => {
-    askLLM("What's happening right now in this scene? Explain briefly.", "❓ What's happening?", true);
+    askLLM(
+      "What's happening right now in this scene? Explain briefly.",
+      "❓ What's happening?",
+      true
+    );
   });
 
   btnTrivia.addEventListener("click", () => {
-    askLLM("Give me 3 interesting trivia facts about this movie/video/song. Keep it spoiler-free and fun!", "🎲 Trivia", true); // Skip validation
+    askLLM(
+      "Give me 3 interesting trivia facts about this movie/video/song. Keep it spoiler-free and fun!",
+      "🎲 Trivia",
+      true
+    ); // Skip validation
   });
 
   btnComments.addEventListener("click", () => {
@@ -735,7 +781,9 @@ function ensureOverlay() {
 
       const bubble = document.createElement("div");
       bubble.className = "chat-bubble";
-      bubble.innerHTML = parseMarkdown("No comments found. Try scrolling down to load comments first.");
+      bubble.innerHTML = parseMarkdown(
+        "No comments found. Try scrolling down to load comments first."
+      );
 
       errorDiv.appendChild(iconDiv);
       errorDiv.appendChild(bubble);
@@ -777,7 +825,9 @@ async function askLLM(question, displayText = null, skipValidation = false) {
 
     const errorBubble = document.createElement("div");
     errorBubble.className = "chat-bubble";
-    errorBubble.innerHTML = parseMarkdown(`Question too long (max ${MAX_QUESTION_LENGTH} characters). Please shorten it.`);
+    errorBubble.innerHTML = parseMarkdown(
+      `Question too long (max ${MAX_QUESTION_LENGTH} characters). Please shorten it.`
+    );
 
     errorDiv.appendChild(errorIconDiv);
     errorDiv.appendChild(errorBubble);
@@ -845,13 +895,15 @@ async function askLLM(question, displayText = null, skipValidation = false) {
     allow_spoilers: allowSpoilers,
     context,
     metadata,
-    chatHistory: chatHistory.slice(-10) // Send last 10 messages
+    chatHistory: chatHistory.slice(-10), // Send last 10 messages
   };
 
   try {
     // Check if extension context is valid
     if (!chrome?.runtime?.sendMessage) {
-      throw new Error("Extension context invalidated. Please refresh the page.");
+      throw new Error(
+        "Extension context invalidated. Please refresh the page."
+      );
     }
 
     const reply = await chrome.runtime.sendMessage({
@@ -883,7 +935,6 @@ async function askLLM(question, displayText = null, skipValidation = false) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 
     chatHistory.push({ role: "assistant", content: answer });
-
   } catch (err) {
     thinkingDiv.remove();
 
@@ -897,7 +948,9 @@ async function askLLM(question, displayText = null, skipValidation = false) {
 
     const errorBubble = document.createElement("div");
     errorBubble.className = "chat-bubble";
-    errorBubble.innerHTML = parseMarkdown(`Error: ${err?.message || String(err)}`);
+    errorBubble.innerHTML = parseMarkdown(
+      `Error: ${err?.message || String(err)}`
+    );
 
     errorDiv.appendChild(errorIconDiv);
     errorDiv.appendChild(errorBubble);
@@ -948,12 +1001,15 @@ function tick() {
   // Detect navigation to NEW VIDEO (ignore hash/timestamp changes)
   const currentVideoId = getVideoId(location.href);
   if (currentVideoId !== _lastVideoId && _lastVideoId !== null) {
-    console.log("[Botodachi] New video detected - clearing buffer, title cache, and chat history");
+    console.log(
+      "[Botodachi] New video detected - clearing buffer, title cache, and chat history"
+    );
     buffer.length = 0; // Clear buffer
-    _lastAdded = "";    // Reset deduplication tracker
+    _lastAdded = ""; // Reset deduplication tracker
     _cachedTitle = null; // Clear cached title for new video
     chatHistory.length = 0; // Clear chat history
     _lastDisplayedTitle = null; // Clear title cache so it updates immediately
+    _lastWarningState = false; // Reset warning state
 
     // Clear chat UI
     const chatContainer = document.getElementById("cinechat-chat-container");
@@ -988,12 +1044,20 @@ function tick() {
 // ---- Update header with current video title ----
 let _titleElement = null;
 let _bufferStatusElement = null;
+let _subtitleWarningElement = null;
 let _lastDisplayedTitle = null;
 let _lastDisplayedBuffer = null;
+let _lastWarningState = false;
 
 function updateHeaderTitle() {
-  if (!_titleElement) _titleElement = document.getElementById("cinechat-video-title");
-  if (!_bufferStatusElement) _bufferStatusElement = document.getElementById("cinechat-buffer-status");
+  if (!_titleElement)
+    _titleElement = document.getElementById("cinechat-video-title");
+  if (!_bufferStatusElement)
+    _bufferStatusElement = document.getElementById("cinechat-buffer-status");
+  if (!_subtitleWarningElement)
+    _subtitleWarningElement = document.getElementById(
+      "cinechat-subtitle-warning"
+    );
   if (!_titleElement) return;
 
   const metadata = getVideoMetadata();
@@ -1002,9 +1066,10 @@ function updateHeaderTitle() {
   if (metadata && metadata.title && metadata.title !== "Unknown Video") {
     // Truncate long titles
     const maxLength = 40;
-    displayTitle = metadata.title.length > maxLength
-      ? `📺 ${metadata.title.substring(0, maxLength)}...`
-      : `📺 ${metadata.title}`;
+    displayTitle =
+      metadata.title.length > maxLength
+        ? `📺 ${metadata.title.substring(0, maxLength)}...`
+        : `📺 ${metadata.title}`;
   } else {
     displayTitle = "No video detected";
   }
@@ -1020,7 +1085,8 @@ function updateHeaderTitle() {
     const oldestTime = buffer[0].t0;
     const newestTime = buffer[buffer.length - 1].t1;
     const durationMinutes = Math.floor((newestTime - oldestTime) / 60);
-    const displayBuffer = durationMinutes > 0 ? `📊 ${durationMinutes} min` : "📊 <1 min";
+    const displayBuffer =
+      durationMinutes > 0 ? `📊 ${durationMinutes} min` : "📊 <1 min";
 
     if (displayBuffer !== _lastDisplayedBuffer) {
       _bufferStatusElement.textContent = displayBuffer;
@@ -1031,6 +1097,20 @@ function updateHeaderTitle() {
     if (_lastDisplayedBuffer !== "") {
       _bufferStatusElement.textContent = "";
       _lastDisplayedBuffer = "";
+    }
+  }
+
+  // Show subtitle warning if buffer is empty and video is playing
+  if (_subtitleWarningElement) {
+    const v = getVideo();
+    const shouldShowWarning =
+      v && v.currentTime > 5 && buffer.length === 0 && !v.paused;
+
+    if (shouldShowWarning !== _lastWarningState) {
+      _subtitleWarningElement.style.display = shouldShowWarning
+        ? "block"
+        : "none";
+      _lastWarningState = shouldShowWarning;
     }
   }
 }
