@@ -56,11 +56,11 @@
   --chip-hover: #504730;
 }
 
-#cinechat-root[data-personality="vulcan"] {
-  --panel-bg: linear-gradient(135deg, rgba(8,22,30,0.98) 0%, rgba(12,38,50,0.98) 100%);
-  --accent: #14e8b8;
-  --chip: #1a3d47;
-  --chip-hover: #25505c;
+#cinechat-root[data-personality="professor"] {
+  --panel-bg: linear-gradient(135deg, rgba(15,25,15,0.98) 0%, rgba(25,40,25,0.98) 100%);
+  --accent: #4ade80;
+  --chip: #2d4a2d;
+  --chip-hover: #3a5f3a;
 }
 
 /* light mode (auto toggle from JS if needed) */
@@ -96,11 +96,11 @@
   --chip-hover: #fde68a;
 }
 
-#cinechat-root.cinechat-light[data-personality="vulcan"] {
-  --panel-bg: linear-gradient(135deg, rgba(240,252,255,0.97) 0%, rgba(235,248,252,0.97) 100%);
-  --accent: #06b6d4;
-  --chip: #cffafe;
-  --chip-hover: #a5f3fc;
+#cinechat-root.cinechat-light[data-personality="professor"] {
+  --panel-bg: linear-gradient(135deg, rgba(240,255,245,0.97) 0%, rgba(235,252,240,0.97) 100%);
+  --accent: #22c55e;
+  --chip: #d1fae5;
+  --chip-hover: #a7f3d0;
 }
 
 /* FAB container - holds toggle button and drag handle */
@@ -202,6 +202,8 @@
   position: absolute;
   bottom: 56px; right: 0;
   width: 360px;
+  min-width: 300px;
+  min-height: 400px;
   max-width: calc(100vw - 32px);
   max-height: 70vh;
   background: var(--panel-bg);
@@ -214,6 +216,7 @@
   backdrop-filter: saturate(120%) blur(6px);
   box-sizing: border-box;
   overflow: auto;
+  resize: both;
 }
 #cinechat-panel.open { display: block; }
 
@@ -358,21 +361,6 @@
 }
 #cinechat-ask:hover {
   opacity: 0.9;
-}
-
-/* Preview box */
-#cinechat-preview {
-  margin-top: 8px;
-  font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: #cfe9cf;
-  background: rgba(20,40,20,.45);
-  border: 1px solid #2a3f2a;
-  border-radius: 10px;
-  padding: 8px;
-  max-height: 120px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 /* Quick question chips */

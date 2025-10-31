@@ -104,7 +104,6 @@ function scrapeYouTubeComments() {
     }
   }
 
-  console.log(`[Botodachi] Scraped ${comments.length} YouTube comments`);
   return comments.length > 0 ? comments : null;
 }
 
@@ -137,7 +136,6 @@ function getVideoMetadata() {
         titleEl.textContent?.trim() ||
         title;
     }
-    console.log("[Botodachi] YouTube title detected:", title);
   } else if (host.includes("netflix.com")) {
     // Try multiple Netflix title selectors (updated for 2024+ Netflix)
     const titleEl =
@@ -163,9 +161,6 @@ function getVideoMetadata() {
         title = `Netflix Video ID: ${match[1]}`;
       }
     }
-
-    console.log("[Botodachi] Netflix title detected:", title);
-    console.log("[Botodachi] Tried selectors - found element:", !!titleEl);
   }
 
   // Cache the title if it's a good one (not ID-based or unknown)
@@ -229,7 +224,7 @@ function readYouTubeCaptionsDOM(now) {
 
 // ---- Netflix: DOM capture ----
 function readNetflixCaptions(now) {
-  // Netflix frequently renders timed text in these candidates
+  // Netflix renders captions in DOM - capture visible text
   const candidates = document.querySelectorAll(
     [
       '[data-uia="player-timedtext"]',
@@ -237,6 +232,7 @@ function readNetflixCaptions(now) {
       'div[data-uia*="timedtext"]',
       'div[data-uia="subtitle-text"]',
       'div[aria-live="assertive"]',
+      'div[aria-live="polite"]',
     ].join(",")
   );
 
@@ -267,7 +263,7 @@ function getPersonalityIcon(personality) {
     neutral: "🎬",
     moviebuff: "📽️",
     comedy: "😂",
-    vulcan: "🖖",
+    professor: "🎓",
     youtube: "▶️",
     custom: "✏️",
   };
@@ -332,36 +328,6 @@ function parseMarkdown(text) {
   return html;
 }
 
-// ---- Preview renderer (GLOBAL so tick() can call it) ----
-// Cache DOM elements to avoid repeated queries
-let _previewShowBuf = null;
-let _previewElement = null;
-
-function renderPreview() {
-  if (!_previewShowBuf)
-    _previewShowBuf = document.getElementById("cinechat-showbuf");
-  if (!_previewElement)
-    _previewElement = document.getElementById("cinechat-preview");
-  if (!_previewShowBuf || !_previewElement) return;
-
-  if (!_previewShowBuf.checked) {
-    _previewElement.style.display = "none";
-    return;
-  }
-  _previewElement.style.display = "block";
-
-  // show last 5 unique non-empty lines from buffer (most recent first)
-  const seen = new Set();
-  const lines = [];
-  for (let i = buffer.length - 1; i >= 0 && lines.length < 5; i--) {
-    const t = buffer[i].text.trim();
-    if (t && !seen.has(t)) {
-      lines.push(t);
-      seen.add(t);
-    }
-  }
-  _previewElement.textContent = lines.reverse().join("\n");
-}
 
 // ---- Overlay UI ----
 function ensureOverlay() {
@@ -393,12 +359,7 @@ function ensureOverlay() {
 
       <div id="cinechat-row">
         <label><input type="checkbox" id="cinechat-spoil"> Allow spoilers</label>
-        <label style="font-size:12px;color:#bbb;">
-          <input type="checkbox" id="cinechat-showbuf"> Captions
-        </label>
       </div>
-
-      <div id="cinechat-preview" style="display:none;"></div>
 
       <div id="cinechat-chat-container"></div>
 
@@ -423,7 +384,7 @@ function ensureOverlay() {
       <button class="personality-btn" data-personality="youtube" title="YouTube/Music">▶️</button>
       <button class="personality-btn" data-personality="moviebuff" title="Movie Buff">📽️</button>
       <button class="personality-btn" data-personality="comedy" title="Comedy">😂</button>
-      <button class="personality-btn" data-personality="vulcan" title="Vulcan">🖖</button>
+      <button class="personality-btn" data-personality="professor" title="Professor">🎓</button>
       <button class="personality-btn" data-personality="custom" title="Custom">✏️</button>
     </div>
   `;
@@ -444,7 +405,6 @@ function ensureOverlay() {
   const q = root.querySelector("#cinechat-q");
   const chatContainer = root.querySelector("#cinechat-chat-container");
   const spoil = root.querySelector("#cinechat-spoil");
-  const showBuf = root.querySelector("#cinechat-showbuf");
   const btnClear = root.querySelector("#cinechat-clear");
   const btnHide = root.querySelector("#cinechat-hide");
 
@@ -730,16 +690,10 @@ function ensureOverlay() {
         // Double-check panel is still open before restoring
         if (panel.classList.contains("open")) {
           q.focus();
-          console.log(
-            "[Botodachi] Auto-restored focus (Netflix controls likely hid)"
-          );
         }
       }, FOCUS_RESTORE_DELAY_MS);
     }
   });
-
-  // preview checkbox
-  showBuf.addEventListener("change", renderPreview);
 
   // prefab chips
   const btnWhatsHappening = root.querySelector("#cinechat-q-whats-happening");
@@ -1029,11 +983,6 @@ function tick() {
       readYouTubeCaptionsDOM(now);
     } else if (host.includes("netflix.com")) {
       readNetflixCaptions(now);
-    }
-
-    // Only refresh preview if checkbox is checked (performance optimization)
-    if (_previewShowBuf?.checked) {
-      renderPreview();
     }
 
     // Update video title in header (optimized - only updates DOM when changed)
