@@ -266,7 +266,7 @@ Botodachi is open source (MIT License) to provide:
 - User auditing of privacy/security claims
 - No hidden data collection or malicious behavior
 
-**Repository**: https://github.com/jovanDjordje/cinechat-mvp
+**Repository**: https://github.com/jovanDjordje/cine-companion
 
 ---
 

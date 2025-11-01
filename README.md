@@ -53,24 +53,21 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 1. **Download the extension:**
 
    ```bash
-   git clone https://github.com/jovanDjordje/cinechat-mvp.git
+   git clone https://github.com/jovanDjordje/cine-companion
    cd cinechat-mvp
    ```
-
 2. **Load in Chrome:**
 
    - Open `chrome://extensions/`
    - Enable "Developer mode" (top right toggle)
    - Click "Load unpacked"
    - Select the `cinechat-mvp` folder
-
 3. **Configure your AI provider:**
 
    - Click the extension icon or right-click → Options
    - Choose your provider (OpenAI, Google AI, or Ollama)
    - Add your API key (or skip for Ollama)
    - Click "Save"
-
 4. **Start watching!**
 
    - Open YouTube or Netflix
@@ -109,7 +106,7 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 
    Then **stop Ollama completely** (right-click system tray icon → Quit) and **restart it**.
 
-   _Important:_ Just closing the window isn't enough - you must fully quit from system tray.
+   *Important:* Just closing the window isn't enough - you must fully quit from system tray.
 
    **macOS/Linux:**
 
@@ -126,7 +123,6 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
    # Allow all origins (development only)
    export OLLAMA_ORIGINS="*"
    ```
-
 3. **Pull a model** (choose based on your hardware):
 
    ```bash
@@ -138,14 +134,12 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
    ollama pull phi3.5           # Good quality
    ollama pull qwen2.5:7b       # Better quality, slower (requires 16GB+ RAM)
    ```
-
 4. **In extension options**:
 
    - Provider: `Ollama (Local)`
    - API Base: `http://localhost:11434`
    - Model: `llama3.2` (or whatever you pulled)
    - API Key: (leave empty)
-
 5. **Verify it's running**:
 
    - Open terminal: `ollama list` (should show your models)
@@ -406,17 +400,13 @@ Edit `overlay.css` custom properties:
 **Solution:**
 
 1. Set OLLAMA_ORIGINS environment variable:
-
    - **Windows**:
-
      ```cmd
      setx OLLAMA_ORIGINS "chrome-extension://*"
      ```
 
      Then **quit Ollama completely** (right-click system tray → Quit) and restart it
-
    - **Mac/Linux**: Add `export OLLAMA_ORIGINS="chrome-extension://*"` to `~/.bashrc` or `~/.zshrc`, then restart terminal and run `ollama serve`
-
 2. Verify setting:
    - Windows: `echo %OLLAMA_ORIGINS%` in new Command Prompt
    - Mac/Linux: `echo $OLLAMA_ORIGINS`
@@ -564,7 +554,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ### Contact
 
-- **GitHub Issues**: https://github.com/jovanDjordje/cinechat-mvp/issues
+- **GitHub Issues**: https://github.com/jovanDjordje/cine-companion/issues
 - **Email**: botadachiapp.dev@gmail.com
 
 ---
@@ -595,4 +585,4 @@ If you find Botodachi useful:
 
 **Made with ❤️ for video enthusiasts**
 
-_Enhancing the way we watch and understand video content._
+*Enhancing the way we watch and understand video content.*
