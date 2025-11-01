@@ -7,12 +7,14 @@
 Botodachi supports three AI provider options with different security profiles:
 
 **🔒 Ollama (Local) - No API Key Needed**
+
 - Runs entirely on your computer (localhost)
 - **Zero security concerns** - no API keys involved
 - Complete privacy - nothing leaves your machine
 - **Recommended for maximum security**
 
 **⚠️ Cloud Providers (OpenAI, Google AI) - API Keys Required**
+
 - Botodachi is a **client-side browser extension**
 - API keys **must** be stored locally in your browser
 - Keys are accessible via Chrome DevTools and extension inspection
@@ -27,31 +29,38 @@ This is a known limitation of all browser extensions that require cloud API cred
 ## Best Practices
 
 ### ✅ DO:
+
 1. **Create a dedicated API key** specifically for this extension
+
    - Don't reuse keys from production applications
    - Label it clearly (e.g., "Botodachi Chrome Extension")
 
 2. **Set strict spending limits**
+
    - OpenAI: Set monthly budget limits in [Usage Dashboard](https://platform.openai.com/usage)
    - Google AI: Configure quotas in [Cloud Console](https://console.cloud.google.com)
    - Recommended limit: **$5-10 per month**
 
 3. **Enable usage quotas**
+
    - Limit requests per minute/day
    - Set hard caps on token consumption
    - Configure alerts for unusual activity
 
 4. **Monitor regularly**
+
    - Check usage weekly through your provider dashboard
    - Review unexpected spikes immediately
    - Rotate keys if suspicious activity detected
 
 5. **Use local models when possible**
+
    - Ollama runs entirely offline (no API key needed)
    - Recommended models: llama3.2, mistral, qwen2.5
    - Zero cost, maximum privacy
 
 ### ❌ DON'T:
+
 1. **Never use production API keys** with high spending limits
 2. **Never share your API key** with anyone
 3. **Never commit API keys** to version control
@@ -63,16 +72,19 @@ This is a known limitation of all browser extensions that require cloud API cred
 ## How We Handle Your API Key
 
 ### Storage
+
 - Keys stored in `chrome.storage.local` (browser's secure storage API)
 - **Not synced** across devices (intentionally)
 - Only accessible by this extension (not other websites or extensions)
 
 ### Transmission
+
 - Keys sent **directly from your browser** to AI providers
 - **Never** pass through our servers (we don't have servers)
 - All traffic uses HTTPS encryption
 
 ### Access
+
 - Only this extension can read the stored key
 - Users with physical access to your computer can extract it via DevTools
 - No remote access or telemetry
@@ -82,6 +94,7 @@ This is a known limitation of all browser extensions that require cloud API cred
 ## Provider-Specific Guides
 
 ### OpenAI API
+
 1. Get API key: https://platform.openai.com/api-keys
 2. Create new key labeled "Botodachi"
 3. Set usage limits:
@@ -93,6 +106,7 @@ This is a known limitation of all browser extensions that require cloud API cred
 **Recommended model:** `gpt-4o-mini` (cost-effective, good quality)
 
 ### Google AI (Gemini)
+
 1. Get API key: https://aistudio.google.com/app/apikey
 2. Create project-specific key
 3. Enable quotas:
@@ -103,6 +117,7 @@ This is a known limitation of all browser extensions that require cloud API cred
 **Recommended model:** `gemini-2.0-flash-exp` (free tier available)
 
 ### Ollama (Local)
+
 - **No API key needed** ✅
 - Runs entirely on your computer
 - Complete privacy, zero cost
@@ -118,11 +133,13 @@ This is a known limitation of all browser extensions that require cloud API cred
 If you suspect your key has been compromised:
 
 1. **Clear from extension:**
+
    - Open extension options
    - Click "Clear Key" button
    - Confirm deletion
 
 2. **Revoke from provider:**
+
    - OpenAI: Delete key in [API Keys](https://platform.openai.com/api-keys)
    - Google: Delete key in [API Console](https://console.cloud.google.com/apis/credentials)
 
@@ -147,6 +164,7 @@ If you suspect your key has been compromised:
 ### Why We Can't Fully Protect Keys
 
 Browser extensions run in the user's browser with their permissions:
+
 - JavaScript code is readable (even if minified)
 - `chrome.storage` is inspectable via DevTools
 - Memory can be dumped while extension is running
@@ -155,6 +173,7 @@ Browser extensions run in the user's browser with their permissions:
 ### Industry Standard
 
 Our approach (`chrome.storage.local`) is the **industry standard** for browser extensions:
+
 - Grammarly
 - LastPass
 - Notion Web Clipper
@@ -165,6 +184,7 @@ All face the same limitations.
 ### Alternative Architecture
 
 **Backend proxy** (enterprise solution):
+
 - User logs into your service
 - Keys stored on your server
 - Extension → Your Backend → AI Provider
@@ -177,15 +197,19 @@ We chose transparency + user control over false security.
 ## Questions?
 
 - **Q: Is my API key safe?**
+
   - A: As safe as possible in a client-side extension, but not 100% secure. Follow best practices above.
 
 - **Q: Can you add encryption?**
+
   - A: Encryption requires storing the decryption key, which has the same vulnerability.
 
 - **Q: Should I use this extension?**
+
   - A: Yes, if you understand the risks and follow best practices (dedicated key with spending limits).
 
 - **Q: What about enterprise use?**
+
   - A: Not recommended without backend proxy architecture. This is designed for personal use.
 
 ---
@@ -193,8 +217,9 @@ We chose transparency + user control over false security.
 ## Report Security Issues
 
 If you discover a security vulnerability in Botodachi code:
+
 - **Do not** open a public GitHub issue
-- Email: botodachiapp.dev@gmail.com
+- Email: botadachiapp.dev@gmail.com
 - Provide: Steps to reproduce, impact assessment, suggested fix
 
 We take security seriously and will respond within 48 hours.
