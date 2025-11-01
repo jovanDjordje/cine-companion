@@ -9,7 +9,8 @@
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "*://*.youtube.com/*",
-    "*://*.netflix.com/*"
+    "*://*.netflix.com/*",
+    "http://localhost/*"
   ],
   "background": {
     "service_worker": "background.js"
