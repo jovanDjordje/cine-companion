@@ -12,6 +12,7 @@ const AUTO_FADE_DELAY_MS = 5000; // Fade FAB after 5 seconds of inactivity
 const buffer = []; // { t0, t1, text }
 let videoRef = null;
 let allowSpoilers = false;
+let captureEnabled = false; // PRIVACY: Capture OFF by default, user must enable
 let _lastAdded = "";
 let _lastURL = location.href; // Track current video URL for navigation detection
 let _cachedTitle = null; // Cache video title to prevent flickering
@@ -329,6 +330,53 @@ function parseMarkdown(text) {
 }
 
 
+// ---- First-run consent dialog ----
+function showConsentDialog() {
+  const consentDiv = document.createElement("div");
+  consentDiv.id = "cinechat-consent";
+  consentDiv.innerHTML = `
+    <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2147483646; display:flex; align-items:center; justify-content:center; font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;">
+      <div style="background:white; color:#1a1a1a; padding:32px; border-radius:16px; max-width:500px; box-shadow:0 24px 80px rgba(0,0,0,0.4);">
+        <h2 style="margin:0 0 16px 0; font-size:24px; color:#1a1a1a;">Welcome to Botodachi! 🤖</h2>
+        <div style="font-size:15px; line-height:1.6; color:#333;">
+          <p style="margin:0 0 12px 0;"><strong>Before you start:</strong></p>
+          <ul style="margin:0 0 16px 0; padding-left:20px;">
+            <li style="margin:6px 0;">Botodachi reads <strong>visible captions</strong> from videos you watch</li>
+            <li style="margin:6px 0;">Capturing is <strong>OFF by default</strong> - you must enable it</li>
+            <li style="margin:6px 0;">When you ask questions, your query + recent captions are sent to <strong>your configured AI provider</strong></li>
+            <li style="margin:6px 0;">All data is stored <strong>locally</strong> on your device</li>
+            <li style="margin:6px 0;">We do not collect or access your data</li>
+          </ul>
+          <p style="margin:0 0 20px 0; font-size:13px; color:#666;">
+            By clicking "I Understand", you consent to this caption capture functionality.
+            <a href="https://jovanDjordje.github.io/cine-companion/privacy.html" target="_blank" style="color:#4a9eff;">Read Privacy Policy</a>
+          </p>
+          <button id="cinechat-consent-btn" style="width:100%; padding:12px; background:#4a9eff; color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer;">
+            I Understand
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.documentElement.appendChild(consentDiv);
+
+  const btn = consentDiv.querySelector("#cinechat-consent-btn");
+  btn.addEventListener("click", () => {
+    // Save consent to storage
+    chrome.storage.local.set({ consentGiven: true });
+    consentDiv.remove();
+  });
+}
+
+// Check if first run and show consent
+function checkFirstRun() {
+  chrome.storage.local.get({ consentGiven: false }, (result) => {
+    if (!result.consentGiven) {
+      showConsentDialog();
+    }
+  });
+}
+
 // ---- Overlay UI ----
 function ensureOverlay() {
   if (document.getElementById("cinechat-root")) return;
@@ -358,6 +406,10 @@ function ensureOverlay() {
       </div>
 
       <div id="cinechat-row">
+        <label style="color:#4ade80; font-weight:600; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="cinechat-capture"> Enable Capture
+          <span id="cinechat-capture-indicator" style="display:none; font-size:10px; background:#4ade80; color:#1a1a1a; padding:2px 6px; border-radius:4px; font-weight:700;">ACTIVE</span>
+        </label>
         <label><input type="checkbox" id="cinechat-spoil"> Allow spoilers</label>
       </div>
 
@@ -368,7 +420,8 @@ function ensureOverlay() {
           <button class="cinechat-chip" id="cinechat-q-whats-happening">❓ What's happening?</button>
           <button class="cinechat-chip" id="cinechat-q-trivia">🎲 Trivia</button>
           <button class="cinechat-chip" id="cinechat-q-comments" style="display:none;">💬 Sum Comments</button>
-          <button class="cinechat-chip" id="cinechat-clear" style="opacity:0.6;">🗑️ Clear</button>
+          <button class="cinechat-chip" id="cinechat-clear" style="opacity:0.6;">🗑️ Clear Chat</button>
+          <button class="cinechat-chip" id="cinechat-clear-buffer" style="opacity:0.6;">🧹 Clear Buffer</button>
         </div>
         <div id="cinechat-input-row">
           <textarea id="cinechat-q" placeholder="Ask anything... (Ctrl+Enter to send)"></textarea>
@@ -404,8 +457,10 @@ function ensureOverlay() {
   const askBtn = root.querySelector("#cinechat-ask");
   const q = root.querySelector("#cinechat-q");
   const chatContainer = root.querySelector("#cinechat-chat-container");
+  const captureToggle = root.querySelector("#cinechat-capture");
   const spoil = root.querySelector("#cinechat-spoil");
   const btnClear = root.querySelector("#cinechat-clear");
+  const btnClearBuffer = root.querySelector("#cinechat-clear-buffer");
   const btnHide = root.querySelector("#cinechat-hide");
 
   const header = root.querySelector("#cinechat-header");
@@ -462,6 +517,27 @@ function ensureOverlay() {
   panel.addEventListener("keydown", blockPanelKeys, true);
   panel.addEventListener("keyup", blockPanelKeys, true);
   panel.addEventListener("keypress", blockPanelKeys, true);
+
+  // PRIVACY: Capture toggle (default OFF)
+  const captureIndicator = root.querySelector("#cinechat-capture-indicator");
+  captureToggle.checked = captureEnabled; // Start unchecked
+  captureToggle.addEventListener("change", () => {
+    captureEnabled = captureToggle.checked;
+
+    // Show/hide active indicator
+    if (captureIndicator) {
+      captureIndicator.style.display = captureEnabled ? "inline" : "none";
+    }
+
+    // Clear buffer when user disables capture
+    if (!captureEnabled) {
+      buffer.length = 0;
+      _lastAdded = "";
+      console.log("[Botodachi] Capture disabled - buffer cleared");
+    } else {
+      console.log("[Botodachi] Capture enabled - starting caption capture");
+    }
+  });
 
   // Restore spoiler toggle from content-script state
   spoil.checked = allowSpoilers;
@@ -566,6 +642,32 @@ function ensureOverlay() {
   btnClear.addEventListener("click", () => {
     chatHistory.length = 0;
     chatContainer.innerHTML = "";
+  });
+
+  // Clear buffer button - PRIVACY: User can manually clear caption buffer
+  btnClearBuffer.addEventListener("click", () => {
+    if (confirm("Clear all captured captions? This cannot be undone.")) {
+      buffer.length = 0;
+      _lastAdded = "";
+      console.log("[Botodachi] Caption buffer manually cleared by user");
+
+      // Show confirmation in chat
+      const confirmDiv = document.createElement("div");
+      confirmDiv.className = "chat-message chat-assistant";
+
+      const iconDiv = document.createElement("div");
+      iconDiv.className = "chat-icon";
+      iconDiv.textContent = "🧹";
+
+      const bubble = document.createElement("div");
+      bubble.className = "chat-bubble";
+      bubble.innerHTML = parseMarkdown("Caption buffer cleared!");
+
+      confirmDiv.appendChild(iconDiv);
+      confirmDiv.appendChild(bubble);
+      chatContainer.appendChild(confirmDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
   });
 
   // Hide extension button - completely hides until page refresh
@@ -977,12 +1079,15 @@ function tick() {
     const now = v.currentTime || 0;
     trimBuffer(now);
 
-    const host = location.hostname;
-    if (host.includes("youtube.com")) {
-      readYouTubeCaptions(now);
-      readYouTubeCaptionsDOM(now);
-    } else if (host.includes("netflix.com")) {
-      readNetflixCaptions(now);
+    // PRIVACY: Only capture captions if user has enabled it
+    if (captureEnabled) {
+      const host = location.hostname;
+      if (host.includes("youtube.com")) {
+        readYouTubeCaptions(now);
+        readYouTubeCaptionsDOM(now);
+      } else if (host.includes("netflix.com")) {
+        readNetflixCaptions(now);
+      }
     }
 
     // Update video title in header (optimized - only updates DOM when changed)
@@ -1112,6 +1217,7 @@ function makeDraggable(container, handle) {
 }
 
 // Boot
+checkFirstRun(); // PRIVACY: Show consent dialog on first run
 ensureOverlay();
 const tickInterval = setInterval(tick, TICK_INTERVAL_MS);
 

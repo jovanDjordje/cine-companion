@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Botodachi Privacy Policy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            color: #333;
+            background: #f9f9f9;
+        }
+        h1 {
+            color: #1a1a1a;
+            border-bottom: 3px solid #4a9eff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2a2a2a;
+            margin-top: 30px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .last-updated {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        ul {
+            margin: 15px 0;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .highlight {
+            background: #fffbea;
+            padding: 15px;
+            border-left: 4px solid #ffd93d;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Botodachi Privacy Policy</h1>
+        <p class="last-updated"><strong>Last Updated:</strong> January 2025</p>
+
+        <h2>Overview</h2>
+        <p>Botodachi is a Chrome browser extension that provides AI-powered assistance while watching videos on YouTube and Netflix. Your privacy is important to us. This policy explains what data we collect, how it's used, and how it's protected.</p>
+
+        <div class="highlight">
+            <strong>Key Point:</strong> Botodachi stores all settings and data locally on your device. We do not collect, store, or have access to any of your personal information.
+        </div>
+
+        <h2>1. Information We Collect</h2>
+        <p>Botodachi collects and stores the following data <strong>locally on your device only</strong>:</p>
+        <ul>
+            <li><strong>API Keys:</strong> Your API keys for AI services (OpenAI, Google AI, or Ollama) are stored securely in your browser's local storage.</li>
+            <li><strong>Extension Settings:</strong> Your preferences including AI personality selection, provider settings, and spoiler preferences.</li>
+            <li><strong>Chat History:</strong> Recent conversation history (last 10 messages) to provide context for follow-up questions. This is stored locally and cleared when you navigate to a new video.</li>
+            <li><strong>Video Captions:</strong> A rolling buffer of up to 30 minutes of video captions captured in real-time from your current viewing session.</li>
+        </ul>
+
+        <h2>2. How We Use Your Information</h2>
+        <p>Data collected by Botodachi is used exclusively to:</p>
+        <ul>
+            <li>Provide AI-powered responses to your questions about video content</li>
+            <li>Maintain conversation context for natural interactions</li>
+            <li>Remember your settings and preferences across browsing sessions</li>
+        </ul>
+
+        <h2>3. Third-Party Services</h2>
+        <p>When you ask a question, Botodachi sends the following to your chosen AI provider (OpenAI, Google AI, or Ollama):</p>
+        <ul>
+            <li>Your question</li>
+            <li>Recent video captions (context)</li>
+            <li>Video metadata (title, platform)</li>
+            <li>Recent chat history (for conversation context)</li>
+        </ul>
+
+        <p><strong>Important:</strong> This data is sent directly to the AI provider you configured. We do not intercept, store, or have access to this communication. Please review the privacy policies of your chosen AI provider:</p>
+        <ul>
+            <li><a href="https://openai.com/policies/privacy-policy">OpenAI Privacy Policy</a></li>
+            <li><a href="https://policies.google.com/privacy">Google Privacy Policy</a></li>
+            <li>Ollama (local): No data leaves your device when using Ollama</li>
+        </ul>
+
+        <h2>4. Data Storage and Security</h2>
+        <ul>
+            <li><strong>Local Storage Only:</strong> All data is stored locally on your device using Chrome's secure storage API.</li>
+            <li><strong>No Remote Servers:</strong> Botodachi does not operate any servers or databases. We cannot access your data.</li>
+            <li><strong>API Keys:</strong> Stored using Chrome's local storage (not synced across devices) for enhanced security.</li>
+            <li><strong>Automatic Cleanup:</strong> Chat history and caption buffers are automatically cleared when you navigate to a new video or close your browser.</li>
+        </ul>
+
+        <h2>5. Data Sharing</h2>
+        <p>We do not sell, rent, or share your data with third parties. The only data sharing occurs when:</p>
+        <ul>
+            <li>You explicitly ask a question, which sends your query and context to your configured AI provider</li>
+            <li>This is necessary for the extension's core functionality and is under your direct control</li>
+        </ul>
+
+        <h2>6. User Control</h2>
+        <p>You have complete control over your data:</p>
+        <ul>
+            <li><strong>Clear Chat History:</strong> Click the "Clear" button in the extension panel</li>
+            <li><strong>Delete Settings:</strong> Remove the extension or clear your Chrome extension data</li>
+            <li><strong>Disable Extension:</strong> Turn off or uninstall Botodachi at any time from chrome://extensions/</li>
+            <li><strong>No Account Required:</strong> Botodachi does not require account creation or authentication</li>
+        </ul>
+
+        <h2>7. Permissions Explained</h2>
+        <p>Botodachi requests the following Chrome permissions:</p>
+        <ul>
+            <li><strong>storage:</strong> To save your settings and API keys locally</li>
+            <li><strong>activeTab:</strong> To access caption data from YouTube and Netflix pages you're actively viewing</li>
+            <li><strong>scripting:</strong> To inject the extension interface on video pages</li>
+        </ul>
+
+        <h2>8. Children's Privacy</h2>
+        <p>Botodachi is not intended for users under 13 years of age. We do not knowingly collect information from children.</p>
+
+        <h2>9. Analytics and Tracking</h2>
+        <p>Botodachi does <strong>not</strong> use analytics, tracking, or telemetry of any kind. We do not collect usage statistics or monitor your behavior.</p>
+
+        <h2>10. Changes to This Policy</h2>
+        <p>We may update this privacy policy occasionally. Any changes will be posted on this page with an updated "Last Updated" date. Continued use of Botodachi after changes constitutes acceptance of the updated policy.</p>
+
+        <h2>11. Open Source</h2>
+        <p>Botodachi is open source software. You can review the complete source code to verify our privacy practices at: <a href="https://github.com/jovanDjordje/cine-companion">GitHub Repository</a></p>
+
+        <h2>12. Contact</h2>
+        <p>If you have questions about this privacy policy, please contact us at:</p>
+        <p><strong>Email:</strong> botadachiapp@outlook.com</p>
+
+        <hr style="margin: 40px 0; border: none; border-top: 1px solid #e0e0e0;">
+
+        <p style="color: #666; font-size: 14px;">
+            <strong>Summary:</strong> Botodachi stores everything locally on your device. We cannot access your data. When you ask questions, your query is sent to your chosen AI provider. That's it. No tracking, no servers, no data collection.
+        </p>
+    </div>
+</body>
+</html>
