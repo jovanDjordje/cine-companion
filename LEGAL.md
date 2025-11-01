@@ -182,7 +182,7 @@ Botodachi does not:
 - Store or redistribute copyrighted material
 - Enable piracy or unauthorized access
 
-If you believe this extension infringes your copyright or violates the DMCA, please contact: botodachiapp.dev@gmail.com
+If you believe this extension infringes your copyright or violates the DMCA, please contact: botadachiapp.dev@gmail.com
 
 ---
 
@@ -201,7 +201,7 @@ We will:
 - Remove or modify functionality as requested
 - Cooperate fully with legitimate legal processes
 
-**To request takedown**: Email botadachiapp.dev@gmail.com with:
+**To request takedown**: Email botadachiapp.dev@gmail.co with:
 
 - Your identity and authority to act
 - Specific functionality or content at issue
