@@ -1,10 +1,10 @@
-# Security Guide for SubtAItoFriends
+# Security Guide for Botodachi
 
 ## API Key Security
 
 ### The Reality
 
-SubtAItoFriends supports three AI provider options with different security profiles:
+Botodachi supports three AI provider options with different security profiles:
 
 **🔒 Ollama (Local) - No API Key Needed**
 - Runs entirely on your computer (localhost)
@@ -13,7 +13,7 @@ SubtAItoFriends supports three AI provider options with different security profi
 - **Recommended for maximum security**
 
 **⚠️ Cloud Providers (OpenAI, Google AI) - API Keys Required**
-- SubtAItoFriends is a **client-side browser extension**
+- Botodachi is a **client-side browser extension**
 - API keys **must** be stored locally in your browser
 - Keys are accessible via Chrome DevTools and extension inspection
 - **Complete protection of API keys is not possible** in client-side extensions
@@ -29,7 +29,7 @@ This is a known limitation of all browser extensions that require cloud API cred
 ### ✅ DO:
 1. **Create a dedicated API key** specifically for this extension
    - Don't reuse keys from production applications
-   - Label it clearly (e.g., "SubtAItoFriends Chrome Extension")
+   - Label it clearly (e.g., "Botodachi Chrome Extension")
 
 2. **Set strict spending limits**
    - OpenAI: Set monthly budget limits in [Usage Dashboard](https://platform.openai.com/usage)
@@ -83,7 +83,7 @@ This is a known limitation of all browser extensions that require cloud API cred
 
 ### OpenAI API
 1. Get API key: https://platform.openai.com/api-keys
-2. Create new key labeled "SubtAItoFriends"
+2. Create new key labeled "Botodachi"
 3. Set usage limits:
    - Go to [Billing → Limits](https://platform.openai.com/settings/organization/limits)
    - Set "Monthly budget" to $10
@@ -192,9 +192,9 @@ We chose transparency + user control over false security.
 
 ## Report Security Issues
 
-If you discover a security vulnerability in SubtAItoFriends code:
+If you discover a security vulnerability in Botodachi code:
 - **Do not** open a public GitHub issue
-- Email: [Your contact email here]
+- Email: botodachiapp.dev@gmail.com
 - Provide: Steps to reproduce, impact assessment, suggested fix
 
 We take security seriously and will respond within 48 hours.

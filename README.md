@@ -12,7 +12,7 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 - **YouTube**: Internet-savvy companion for music videos and creators
 - **Movie Buff**: Film school graduate who can't stop analyzing cinematography
 - **Comedy**: Sarcastic MST3K-style commentary that roasts plot holes
-- **Vulcan**: Purely logical Star Trek-inspired analysis (zero emotions)
+- **Professor**: Fascinating insights that make learning addictive (brief and punchy)
 - **Custom**: Define your own personality with a custom prompt
 
 ### 💬 Real-Time Context
@@ -47,8 +47,8 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 
 1. **Download the extension:**
    ```bash
-   git clone https://github.com/[your-username]/Botodachi.git
-   cd Botodachi
+   git clone https://github.com/jovanDjordje/cinechat-mvp.git
+   cd cinechat-mvp
    ```
 
 2. **Load in Chrome:**
@@ -172,7 +172,7 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 - Perfect for first-time watchers!
 
 ### Personality Switching
-- Click personality icons (▶️ 📽️ 😂 🖖 ✏️) to change AI behavior
+- Click personality icons (▶️ 📽️ 😂 🎓 ✏️) to change AI behavior
 - Each personality has distinct tone and focus
 - Try them all to find your favorite!
 
@@ -460,8 +460,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Issues**: Open a GitHub issue for bugs/features
 
 ### Contact
-- **GitHub Issues**: https://github.com/[your-username]/Botodachi/issues
-- **Email**: [your-email@example.com]
+- **GitHub Issues**: https://github.com/jovanDjordje/cinechat-mvp/issues
+- **Email**: botodachiapp.dev@gmail.com
 
 ---
 
@@ -488,6 +488,6 @@ If you find Botodachi useful:
 
 ---
 
-**Made with ❤️ by [Your Name]**
+**Made with ❤️ for video enthusiasts**
 
 *Enhancing the way we watch and understand video content.*
