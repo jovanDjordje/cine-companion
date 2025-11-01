@@ -307,6 +307,16 @@
   transition: color 0.2s ease;
 }
 
+/* Utility buttons row (below input) */
+#cinechat-utilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 #cinechat-q {
   flex: 1;
   height: 56px;

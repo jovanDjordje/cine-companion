@@ -176,6 +176,41 @@ Botodachi is a Chrome extension that lets you chat with AI about what you're wat
 - Each personality has distinct tone and focus
 - Try them all to find your favorite!
 
+### First Use & Consent
+When you first click the 🤖 bot icon on a video:
+- A consent popup appears explaining what Botodachi does
+- You must accept the terms to use the extension
+- This happens **once** - your acceptance is stored locally
+- You can review terms at any time in the extension options
+
+### Caption Buffer Management
+Botodachi maintains a **30-minute rolling buffer** of captured captions:
+
+**How it works:**
+- Automatically captures subtitles as you watch
+- Stores up to 30 minutes of recent captions
+- Oldest captions are removed when buffer is full
+- Buffer status shown in header (📊 X min)
+
+**Subtitle Warning:**
+- After 5 seconds of playback, if no captions detected: "⚠️ Enable subtitles/captions"
+- Turn on CC/subtitles in your video player
+- Warning disappears once captions start flowing
+
+**Seeking behavior:**
+- Jump backward (02:00 → 00:30): Buffer keeps all captured data
+- Jump forward (00:30 → 02:00): Buffer keeps earlier data + captures from new position
+- Result: Buffer may have gaps if you skip around, but AI can reference any captured moment
+
+**Managing your buffer:**
+- **Clear Buffer**: Removes all captured captions (useful for starting fresh)
+- **Clear Chat**: Removes conversation history (keeps buffer intact)
+- Both buttons located below the input bar
+
+**Navigation:**
+- Buffer automatically clears when you navigate to a different video
+- Each video gets a fresh buffer
+
 ---
 
 ## 🔒 Security & Privacy
@@ -243,7 +278,8 @@ cinechat-mvp/
 ├── overlay.css        # Styling with theming (~500 lines)
 ├── options.html       # Settings page
 ├── options.js         # Settings logic
-├── CLAUDE.md         # Development guide for AI assistants
+├── docs/              # GitHub Pages privacy policy
+├── LEGAL.md          # Legal disclaimer
 ├── SECURITY.md       # Security documentation
 └── README.md         # This file
 ```

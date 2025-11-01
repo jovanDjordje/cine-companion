@@ -331,7 +331,7 @@ function parseMarkdown(text) {
 
 
 // ---- First-run consent dialog ----
-function showConsentDialog() {
+function showConsentDialog(onConsent) {
   const consentDiv = document.createElement("div");
   consentDiv.id = "cinechat-consent";
   consentDiv.innerHTML = `
@@ -349,7 +349,7 @@ function showConsentDialog() {
           </ul>
           <p style="margin:0 0 20px 0; font-size:13px; color:#666;">
             By clicking "I Understand", you consent to this caption capture functionality.
-            <a href="https://jovanDjordje.github.io/cine-companion/privacy.html" target="_blank" style="color:#4a9eff;">Read Privacy Policy</a>
+            <a href="https://jovandjordje.github.io/cine-companion/" target="_blank" style="color:#4a9eff;">Read Privacy Policy</a>
           </p>
           <button id="cinechat-consent-btn" style="width:100%; padding:12px; background:#4a9eff; color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer;">
             I Understand
@@ -365,17 +365,12 @@ function showConsentDialog() {
     // Save consent to storage
     chrome.storage.local.set({ consentGiven: true });
     consentDiv.remove();
+    // Call the callback to open panel
+    if (onConsent) onConsent();
   });
 }
 
-// Check if first run and show consent
-function checkFirstRun() {
-  chrome.storage.local.get({ consentGiven: false }, (result) => {
-    if (!result.consentGiven) {
-      showConsentDialog();
-    }
-  });
-}
+// Note: checkFirstRun() removed - consent now shown on first FAB click
 
 // ---- Overlay UI ----
 function ensureOverlay() {
@@ -420,8 +415,6 @@ function ensureOverlay() {
           <button class="cinechat-chip" id="cinechat-q-whats-happening">❓ What's happening?</button>
           <button class="cinechat-chip" id="cinechat-q-trivia">🎲 Trivia</button>
           <button class="cinechat-chip" id="cinechat-q-comments" style="display:none;">💬 Sum Comments</button>
-          <button class="cinechat-chip" id="cinechat-clear" style="opacity:0.6;">🗑️ Clear Chat</button>
-          <button class="cinechat-chip" id="cinechat-clear-buffer" style="opacity:0.6;">🧹 Clear Buffer</button>
         </div>
         <div id="cinechat-input-row">
           <textarea id="cinechat-q" placeholder="Ask anything... (Ctrl+Enter to send)"></textarea>
@@ -429,6 +422,10 @@ function ensureOverlay() {
         </div>
         <div id="cinechat-char-counter">
           <span id="cinechat-char-count">0</span>/<span>500</span>
+        </div>
+        <div id="cinechat-utilities">
+          <button class="cinechat-chip" id="cinechat-clear" style="opacity:0.6;">🗑️ Clear Chat</button>
+          <button class="cinechat-chip" id="cinechat-clear-buffer" style="opacity:0.6;">🧹 Clear Buffer</button>
         </div>
       </div>
     </div>
@@ -605,17 +602,30 @@ function ensureOverlay() {
     });
   });
 
-  // Toggle button click handler (simple click to open/close)
+  // Toggle button click handler (check consent first, then open/close)
   toggle.addEventListener("click", () => {
-    panel.classList.toggle("open");
+    // Check if user has given consent
+    chrome.storage.local.get({ consentGiven: false }, (result) => {
+      if (!result.consentGiven) {
+        // Show consent dialog - will open panel after consent is given
+        showConsentDialog(() => {
+          panel.classList.add("open");
+          root.classList.remove("faded");
+          if (_fadeTimeout) clearTimeout(_fadeTimeout);
+        });
+      } else {
+        // Consent already given, proceed with toggle
+        panel.classList.toggle("open");
 
-    // When panel opens, remove fade; when it closes, restart fade timer
-    if (panel.classList.contains("open")) {
-      root.classList.remove("faded");
-      if (_fadeTimeout) clearTimeout(_fadeTimeout);
-    } else {
-      startFadeTimer();
-    }
+        // When panel opens, remove fade; when it closes, restart fade timer
+        if (panel.classList.contains("open")) {
+          root.classList.remove("faded");
+          if (_fadeTimeout) clearTimeout(_fadeTimeout);
+        } else {
+          startFadeTimer();
+        }
+      }
+    });
   });
 
   // ---- Auto-fade on inactivity ----
@@ -1217,7 +1227,7 @@ function makeDraggable(container, handle) {
 }
 
 // Boot
-checkFirstRun(); // PRIVACY: Show consent dialog on first run
+// Note: Consent dialog now shown on first FAB click (see toggle handler)
 ensureOverlay();
 const tickInterval = setInterval(tick, TICK_INTERVAL_MS);
 
