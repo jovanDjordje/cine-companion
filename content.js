@@ -246,7 +246,6 @@ function readNetflixCaptions(now) {
   text = text.replace(/\s+/g, " ").trim();
   if (text) {
     addCue(now - 1.0, now + 0.2, text);
-    // console.log("[Botodachi] NF captions:", text);
   }
 }
 
@@ -1217,8 +1216,8 @@ function makeDraggable(container, handle) {
 ensureOverlay();
 const tickInterval = setInterval(tick, TICK_INTERVAL_MS);
 
-// Clean up on page unload to prevent memory leaks
-window.addEventListener("unload", () => {
+// Clean up on page hide to prevent memory leaks (pagehide replaces deprecated unload)
+window.addEventListener("pagehide", () => {
   clearInterval(tickInterval);
   if (_fadeTimeout) clearTimeout(_fadeTimeout);
   if (_keydownListener) {
