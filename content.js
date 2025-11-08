@@ -21,21 +21,13 @@ let chatHistory = []; // Store conversation history for context
 const MAX_CHAT_HISTORY = 10; // Keep last 10 Q&A pairs
 
 // Store listener references for cleanup
-let _storageListener = null;
 let _keydownListener = null;
 
 // Auto-fade state
 let _fadeTimeout = null;
 let _rootElement = null;
 
-// Listen for personality changes in storage
-_storageListener = (changes, area) => {
-  if (area === "local" && changes.personality) {
-    _cachedPersonality = changes.personality.newValue;
-    console.log("[Botodachi] Personality changed to:", _cachedPersonality);
-  }
-};
-chrome.storage.onChanged.addListener(_storageListener);
+// NOTE: Personality is tab-local (like buffer), no cross-tab synchronization
 
 // ---- Buffer helpers ----
 function trimBuffer(now) {
@@ -329,7 +321,6 @@ function parseMarkdown(text) {
   return html;
 }
 
-
 // ---- First-run consent dialog ----
 function showConsentDialog(onConsent) {
   const consentDiv = document.createElement("div");
@@ -420,12 +411,12 @@ function ensureOverlay() {
           <textarea id="cinechat-q" placeholder="Ask anything... (Ctrl+Enter to send)"></textarea>
           <button id="cinechat-ask">Ask</button>
         </div>
-        <div id="cinechat-char-counter">
-          <span id="cinechat-char-count">0</span>/<span>500</span>
-        </div>
         <div id="cinechat-utilities">
           <button class="cinechat-chip" id="cinechat-clear" style="opacity:0.6;">🗑️ Clear Chat</button>
           <button class="cinechat-chip" id="cinechat-clear-buffer" style="opacity:0.6;">🧹 Clear Buffer</button>
+          <div id="cinechat-char-counter">
+            <span id="cinechat-char-count">0</span>/<span>500</span>
+          </div>
         </div>
       </div>
     </div>
@@ -545,22 +536,19 @@ function ensureOverlay() {
   // Personality switcher
   const personalityBtns = root.querySelectorAll(".personality-btn");
 
-  // Auto-detect best default personality based on platform
+  // Auto-detect best default personality based on platform (tab-local, no storage)
   const hostname = location.hostname;
   const defaultPersonality = hostname.includes("youtube.com")
     ? "youtube"
     : "moviebuff";
 
-  // Load and highlight current personality (and cache it)
-  chrome.storage.local.get({ personality: defaultPersonality }, (cfg) => {
-    const currentPersonality = cfg.personality;
-    _cachedPersonality = currentPersonality; // Cache it
-    root.setAttribute("data-personality", currentPersonality);
-    personalityBtns.forEach((btn) => {
-      if (btn.dataset.personality === currentPersonality) {
-        btn.classList.add("active");
-      }
-    });
+  // Set initial personality (tab-local only)
+  _cachedPersonality = defaultPersonality;
+  root.setAttribute("data-personality", defaultPersonality);
+  personalityBtns.forEach((btn) => {
+    if (btn.dataset.personality === defaultPersonality) {
+      btn.classList.add("active");
+    }
   });
 
   // Handle personality button clicks
@@ -575,11 +563,8 @@ function ensureOverlay() {
       // Update root attribute for gradient
       root.setAttribute("data-personality", newPersonality);
 
-      // Update cache immediately
+      // Update cache immediately (tab-local only, no storage persistence)
       _cachedPersonality = newPersonality;
-
-      // Save to storage
-      chrome.storage.local.set({ personality: newPersonality });
 
       // Visual feedback - add to chat instead (XSS-safe)
       const feedbackDiv = document.createElement("div");
@@ -962,6 +947,7 @@ async function askLLM(question, displayText = null, skipValidation = false) {
     context,
     metadata,
     chatHistory: chatHistory.slice(-10), // Send last 10 messages
+    personality: _cachedPersonality, // Tab-specific personality
   };
 
   try {
@@ -1235,9 +1221,6 @@ const tickInterval = setInterval(tick, TICK_INTERVAL_MS);
 window.addEventListener("unload", () => {
   clearInterval(tickInterval);
   if (_fadeTimeout) clearTimeout(_fadeTimeout);
-  if (_storageListener) {
-    chrome.storage.onChanged.removeListener(_storageListener);
-  }
   if (_keydownListener) {
     document.removeEventListener("keydown", _keydownListener);
   }

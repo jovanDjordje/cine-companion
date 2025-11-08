@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Botodachi",
   "version": "0.1.0",
-  "description": "Your AI companion for movies and videos. Chat about what's happening using real-time subtitles. Not affiliated with any streaming service.",
+  "description": "Chat with AI about YouTube and Netflix videos using real-time subtitles. Privacy-focused, no tracking.",
   "action": {
     "default_title": "Botodachi"
   },
@@ -26,12 +26,6 @@
       "js": ["content.js"],
       "css": ["overlay.css"],
       "run_at": "document_idle"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["robo.png"],
-      "matches": ["*://*.youtube.com/*", "*://*.netflix.com/*"]
     }
   ]
 }

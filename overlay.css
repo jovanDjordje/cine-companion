@@ -281,10 +281,10 @@
 /* Input area at bottom - distinct section */
 #cinechat-input-area {
   margin-top: 12px;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   background: var(--input-bg);
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -302,18 +302,18 @@
   font-size: 11px;
   color: var(--muted-text);
   text-align: right;
-  margin-top: 4px;
   font-weight: 600;
   transition: color 0.2s ease;
+  margin-left: auto;
 }
 
 /* Utility buttons row (below input) */
 #cinechat-utilities {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  padding-top: 6px;
   margin-top: 4px;
-  padding-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -378,7 +378,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
 }
 .cinechat-chip {
   all: unset;

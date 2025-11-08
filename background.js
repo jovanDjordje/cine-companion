@@ -96,14 +96,14 @@ Be casual and internet-savvy. Know YouTubers, creators, music artists, and trend
 }
 
 function buildPrompt(payload, settings) {
-  const { question, now, allow_spoilers, context, metadata, chatHistory } = payload;
+  const { question, now, allow_spoilers, context, metadata, chatHistory, personality } = payload;
 
   // Extract video metadata for better context
   const videoTitle = metadata?.title || "Unknown Video";
   const platform = metadata?.platform || "unknown";
 
-  // Get personality instructions (pass custom prompt if available)
-  const personalityInstructions = getPersonalityInstructions(settings.personality, settings.customPersonality);
+  // Get personality instructions (use tab-specific personality from payload, pass custom prompt if available)
+  const personalityInstructions = getPersonalityInstructions(personality || settings.personality, settings.customPersonality);
 
   // Smart context selection with Ollama optimization
   // Ollama (local models): Send fewer captions for faster processing
@@ -177,7 +177,7 @@ ${ctxLines || "(no subtitle context caught yet)"}
 `;
 
   // For Comedy personality: Verbalized Sampling for creative diversity
-  if (settings.personality === "comedy") {
+  if (personality === "comedy") {
     user += `
 
 IMPORTANT: Generate 2 different comedic responses to this question, sampled from the TAILS of the probability distribution (less probable, more creative options). Use this format:
@@ -196,7 +196,7 @@ CRITICAL REQUIREMENTS:
 - Both responses must match your sarcastic personality`;
   }
 
-  return { header, user, isComedyVariant: settings.personality === "comedy" };
+  return { header, user, isComedyVariant: personality === "comedy" };
 }
 
 // Helper: Parse multi-response format with probabilities and select using inverse weighting
