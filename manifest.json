@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Botodachi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Chat with AI about YouTube and Netflix videos using real-time subtitles. Privacy-focused, no tracking.",
   "action": {
     "default_title": "Botodachi"
   },
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage"],
   "host_permissions": [
     "*://*.youtube.com/*",
     "*://*.netflix.com/*"
